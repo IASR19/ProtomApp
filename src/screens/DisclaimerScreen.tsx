@@ -57,22 +57,6 @@ export default function DisclaimerScreen({ navigation }: Props) {
           </Text>
         </View>
 
-        {/* Info Boxes */}
-        <View style={styles.infoRow}>
-          <View style={[styles.infoBox, { borderLeftColor: Colors.blue }]}>
-            <View style={GlobalStyles.row}>
-              <Ionicons name="shield-checkmark" size={14} color={Colors.blue} />
-              <Text style={[styles.infoTitle, { color: Colors.blue }]}>
-                {" "}
-                Blindagem Jurídica
-              </Text>
-            </View>
-            <Text style={styles.infoText}>
-              A primeira interação garante a proteção legal do aplicativo.
-            </Text>
-          </View>
-        </View>
-
         {/* CTA Button */}
         <TouchableOpacity
           style={styles.btn}
