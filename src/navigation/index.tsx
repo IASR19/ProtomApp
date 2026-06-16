@@ -7,6 +7,7 @@ import { Colors } from "../theme/colors";
 // Screens
 import DisclaimerScreen from "../screens/DisclaimerScreen";
 import LoginScreen from "../screens/LoginScreen";
+import OnboardingChatScreen from "../screens/OnboardingChatScreen";
 import ObjectiveScreen from "../screens/ObjectiveScreen";
 import BiometricsScreen from "../screens/BiometricsScreen";
 import DashboardScreen from "../screens/DashboardScreen";
@@ -24,6 +25,7 @@ import ProfileScreen from "../screens/ProfileScreen";
 export type RootStackParamList = {
   Disclaimer: undefined;
   Login: undefined;
+  OnboardingChat: undefined;
   Objective: undefined;
   Biometrics: undefined;
   MainTabs: undefined;
@@ -104,6 +106,7 @@ export function AppNavigator() {
     >
       <Stack.Screen name="Disclaimer" component={DisclaimerScreen} />
       <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="OnboardingChat" component={OnboardingChatScreen} />
       <Stack.Screen name="Objective" component={ObjectiveScreen} />
       <Stack.Screen name="Biometrics" component={BiometricsScreen} />
       <Stack.Screen name="MainTabs" component={MainTabs} />

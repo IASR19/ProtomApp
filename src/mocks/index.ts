@@ -27,6 +27,42 @@ export const mockDashboard = {
   nextExamDays: 12,
   weightProgress: -0.0,
   criticalAlerts: 0,
+  metabolicScoreDetails: {
+    protocolAdherence: 72,
+    wearableData: {
+      sleep: 6.2,
+      recovery: 85,
+      avgHeartRate: 68,
+    },
+    weightProgress: 45,
+    examsStatus: 90,
+  },
+  alerts: [
+    {
+      id: "1",
+      level: "warning" as const,
+      category: "adherence" as const,
+      title: "Aderência ao Protocolo Baixa",
+      description: "Sua aderência está em 72%, abaixo do ideal de 80%.",
+      metric: "Aderência",
+      value: "72%",
+      expectedRange: "≥ 80%",
+      recommendation:
+        "Tente marcar todas as tarefas do protocolo diário. Use alarmes para lembrar dos horários importantes.",
+    },
+    {
+      id: "2",
+      level: "warning" as const,
+      category: "wearable" as const,
+      title: "Qualidade do Sono Abaixo do Ideal",
+      description: "Você dormiu apenas 6.2 horas na última noite.",
+      metric: "Sono",
+      value: "6.2h",
+      expectedRange: "7-9 horas",
+      recommendation:
+        "Mantenha uma rotina consistente de sono. Evite telas 1 hora antes de dormir.",
+    },
+  ],
 };
 
 export const mockProtocol = {

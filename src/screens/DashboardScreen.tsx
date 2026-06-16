@@ -12,6 +12,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "../theme/colors";
 import { GlobalStyles } from "../theme/styles";
 import { mockUser, mockDashboard } from "../mocks";
+import { MetabolicScoreCard } from "../components/MetabolicScoreCard";
+import { SmartAlertsCard } from "../components/SmartAlertsCard";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { MainTabParamList } from "../navigation";
 
@@ -82,27 +84,11 @@ export default function DashboardScreen({ navigation }: Props) {
           </TouchableOpacity>
         </View>
 
-        {/* Score Card */}
-        <LinearGradient
-          colors={["#0F2A4A", "#0A1E38"]}
-          style={styles.scoreCard}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <View style={styles.scoreLeft}>
-            <Text style={[styles.scoreValue, { color: scoreColor }]}>
-              {mockDashboard.metabolicScore}
-              <Text style={styles.scoreOf}>/100</Text>
-            </Text>
-            <Text style={styles.scoreLabel}>SCORE METABÓLICO</Text>
-          </View>
-          <Ionicons
-            name="heart"
-            size={48}
-            color={Colors.teal}
-            style={{ opacity: 0.4 }}
-          />
-        </LinearGradient>
+        {/* Score Metabólico Expandido */}
+        <MetabolicScoreCard
+          score={mockDashboard.metabolicScore}
+          details={mockDashboard.metabolicScoreDetails}
+        />
 
         {/* 4 Metric Cards */}
         <View style={styles.metricsGrid}>
@@ -167,28 +153,8 @@ export default function DashboardScreen({ navigation }: Props) {
           </View>
         </View>
 
-        {/* Alertas */}
-        {mockDashboard.criticalAlerts === 0 ? (
-          <View style={styles.alertSuccess}>
-            <Ionicons
-              name="checkmark-circle"
-              size={18}
-              color={Colors.success}
-            />
-            <Text style={styles.alertSuccessText}>
-              {" "}
-              Alertas Críticos: 0 (Exames Normais)
-            </Text>
-          </View>
-        ) : (
-          <View style={styles.alertDanger}>
-            <Ionicons name="alert-circle" size={18} color={Colors.danger} />
-            <Text style={styles.alertDangerText}>
-              {" "}
-              {mockDashboard.criticalAlerts} alerta(s) crítico(s)
-            </Text>
-          </View>
-        )}
+        {/* Sistema de Alertas Inteligentes */}
+        <SmartAlertsCard alerts={mockDashboard.alerts} />
 
         {/* Quick Actions */}
         <Text style={[GlobalStyles.sectionTitle, { marginTop: 24 }]}>

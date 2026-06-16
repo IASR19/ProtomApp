@@ -298,6 +298,11 @@ export default function ProtocolScreen() {
 
   return (
     <SafeAreaView style={GlobalStyles.safeArea}>
+      {/* Barra de Progresso Fixa no Topo */}
+      <View style={styles.topProgressBar}>
+        <View style={[styles.topProgressFill, { width: `${adherence}%` }]} />
+      </View>
+
       <ScrollView
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
@@ -370,6 +375,20 @@ export default function ProtocolScreen() {
             </View>
           ))}
         </ScrollView>
+
+        {/* Alerta de Aderência Baixa */}
+        {adherence < 50 && (
+          <View style={styles.lowAdherenceAlert}>
+            <Ionicons name="warning" size={20} color={Colors.warning} />
+            <View style={styles.lowAdherenceTextContainer}>
+              <Text style={styles.lowAdherenceTitle}>Atenção Necessária!</Text>
+              <Text style={styles.lowAdherenceText}>
+                Sua aderência está em {adherence}%. Tente completar mais tarefas
+                hoje para melhores resultados.
+              </Text>
+            </View>
+          </View>
+        )}
 
         {/* Adherence cockpit */}
         <View style={styles.adherenceCard}>
@@ -465,6 +484,40 @@ export default function ProtocolScreen() {
 
 const styles = StyleSheet.create({
   container: { paddingHorizontal: 18, paddingTop: 16, paddingBottom: 40 },
+  topProgressBar: {
+    height: 4,
+    backgroundColor: Colors.bgPrimary,
+    width: "100%",
+  },
+  topProgressFill: {
+    height: "100%",
+    backgroundColor: Colors.teal,
+  },
+  lowAdherenceAlert: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: "rgba(251,191,36,0.12)",
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: Colors.warning,
+    marginBottom: 16,
+    gap: 12,
+  },
+  lowAdherenceTextContainer: {
+    flex: 1,
+  },
+  lowAdherenceTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: Colors.warning,
+    marginBottom: 4,
+  },
+  lowAdherenceText: {
+    fontSize: 12,
+    color: Colors.warning,
+    lineHeight: 18,
+  },
   topBar: {
     flexDirection: "row",
     justifyContent: "space-between",

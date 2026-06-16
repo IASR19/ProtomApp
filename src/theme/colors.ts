@@ -5,6 +5,7 @@ export const Colors = {
   bgCard: "#152040",
   bgCardLight: "#1A2744",
   bgInput: "#1E2D4A",
+  bgTertiary: "#1A2950",
 
   // Brand / Accent
   teal: "#00C9B1",

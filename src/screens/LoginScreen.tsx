@@ -27,7 +27,7 @@ export default function LoginScreen({ navigation }: Props) {
   const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = () => {
-    navigation.navigate("Objective");
+    navigation.navigate("OnboardingChat");
   };
 
   return (
