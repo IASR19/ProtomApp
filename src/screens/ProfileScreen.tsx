@@ -10,7 +10,6 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../theme/colors";
 import { GlobalStyles } from "../theme/styles";
-import { mockUser } from "../mocks";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { MainTabParamList } from "../navigation";
 
@@ -57,7 +56,29 @@ function MenuItem({
   );
 }
 
+import { useAuth } from "../context/AuthContext";
+
 export default function ProfileScreen({ navigation }: Props) {
+  const { user, logout } = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (err: any) {
+      console.error("Erro ao fazer logout:", err.message);
+    }
+  };
+
+  const name = user?.name || "Usuário";
+  const email = user?.email || "";
+  const plan = user?.plan || "Gratuito";
+  const initials = name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2) || "US";
+
   return (
     <SafeAreaView style={GlobalStyles.safeArea}>
       <ScrollView
@@ -77,21 +98,21 @@ export default function ProfileScreen({ navigation }: Props) {
         {/* User Card */}
         <View style={styles.userCard}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{mockUser.initials}</Text>
+            <Text style={styles.avatarText}>{initials}</Text>
           </View>
-          <Text style={styles.userName}>{mockUser.name}</Text>
-          <Text style={styles.userEmail}>{mockUser.email}</Text>
+          <Text style={styles.userName}>{name}</Text>
+          <Text style={styles.userEmail}>{email}</Text>
         </View>
 
         {/* Premium Plan */}
         <View style={styles.planCard}>
           <View style={GlobalStyles.row}>
             <Text style={styles.planIcon}>👑</Text>
-            <Text style={styles.planLabel}> Plano {mockUser.plan}</Text>
+            <Text style={styles.planLabel}> Plano {plan}</Text>
           </View>
           <View style={GlobalStyles.row}>
             <Text style={styles.planRenewal}>
-              Renova em {mockUser.planRenewal}
+              Renova em 15/05/2027
             </Text>
             <TouchableOpacity style={styles.manageBtn}>
               <Text style={styles.manageBtnText}>Gerenciar</Text>
@@ -117,16 +138,16 @@ export default function ProfileScreen({ navigation }: Props) {
             onPress={() => {}}
           />
           <MenuItem
-            icon="shield-outline"
-            label="Privacidade e LGPD"
-            onPress={() => {}}
+            icon="options-outline"
+            label="Gerar Novo Protocolo"
+            onPress={() => (navigation as any).navigate("OnboardingChat")}
           />
         </View>
 
         {/* Logout */}
         <TouchableOpacity
           style={styles.logoutBtn}
-          onPress={() => (navigation as any).navigate("Disclaimer")}
+          onPress={handleLogout}
           activeOpacity={0.8}
         >
           <Ionicons name="log-out-outline" size={18} color={Colors.danger} />

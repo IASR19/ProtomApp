@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,11 +6,12 @@ import {
   ScrollView,
   SafeAreaView,
   TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../theme/colors";
 import { GlobalStyles } from "../theme/styles";
-import { mockPartners } from "../mocks";
+import { api } from "../services/api";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation";
 
@@ -18,16 +19,43 @@ interface Props {
   navigation: NativeStackNavigationProp<RootStackParamList, "Partners">;
 }
 
-type TabKey = "Suplementos" | "Farmácias" | "Exames";
+interface PartnerItem {
+  id: string;
+  name: string;
+  brand: string;
+  discount: string;
+  icon: string;
+}
 
-const TAB_DATA: Record<TabKey, typeof mockPartners.supplements> = {
-  Suplementos: mockPartners.supplements,
-  Farmácias: mockPartners.pharmacies,
-  Exames: mockPartners.exams,
-};
+interface PartnersData {
+  savings: number;
+  tabs: string[];
+  supplements: PartnerItem[];
+  pharmacies: PartnerItem[];
+  exams: PartnerItem[];
+}
+
+type TabKey = "Suplementos" | "Farmácias" | "Exames";
 
 export default function PartnersScreen({ navigation }: Props) {
   const [activeTab, setActiveTab] = useState<TabKey>("Suplementos");
+  const [data, setData] = useState<PartnersData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api
+      .get<PartnersData>("/partners")
+      .then((res) => setData(res))
+      .catch((err) => console.warn("Erro ao carregar parceiros:", err.message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const TAB_DATA: Record<TabKey, PartnerItem[]> = {
+    Suplementos: data?.supplements ?? [],
+    Farmácias: data?.pharmacies ?? [],
+    Exames: data?.exams ?? [],
+  };
+
   const items = TAB_DATA[activeTab];
 
   return (
@@ -53,62 +81,88 @@ export default function PartnersScreen({ navigation }: Props) {
           />
         </View>
 
-        {/* Savings Banner */}
-        <View style={styles.savingsBanner}>
-          <View>
-            <Text style={styles.savingsLabel}>ECONOMIA ACUMULADA</Text>
-            <Text style={styles.savingsValue}>
-              R$ {mockPartners.savings.toFixed(2).replace(".", ",")}
-            </Text>
-          </View>
-          <Ionicons name="wallet" size={36} color={Colors.teal} />
-        </View>
+        {loading ? (
+          <ActivityIndicator
+            size="large"
+            color={Colors.teal}
+            style={{ marginTop: 40 }}
+          />
+        ) : (
+          <>
+            {/* Savings Banner */}
+            <View style={styles.savingsBanner}>
+              <View>
+                <Text style={styles.savingsLabel}>ECONOMIA ACUMULADA</Text>
+                <Text style={styles.savingsValue}>
+                  R${" "}
+                  {(data?.savings ?? 0).toFixed(2).replace(".", ",")}
+                </Text>
+              </View>
+              <Ionicons name="wallet" size={36} color={Colors.teal} />
+            </View>
 
-        {/* Tabs */}
-        <View style={styles.tabs}>
-          {mockPartners.tabs.map((tab) => (
-            <TouchableOpacity
-              key={tab}
-              style={[styles.tab, activeTab === tab && styles.tabActive]}
-              onPress={() => setActiveTab(tab as TabKey)}
-            >
-              <Text
-                style={[
-                  styles.tabText,
-                  activeTab === tab && styles.tabTextActive,
-                ]}
-              >
-                {tab}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+            {/* Tabs */}
+            <View style={styles.tabs}>
+              {(data?.tabs ?? ["Suplementos", "Farmácias", "Exames"]).map(
+                (tab) => (
+                  <TouchableOpacity
+                    key={tab}
+                    style={[styles.tab, activeTab === tab && styles.tabActive]}
+                    onPress={() => setActiveTab(tab as TabKey)}
+                  >
+                    <Text
+                      style={[
+                        styles.tabText,
+                        activeTab === tab && styles.tabTextActive,
+                      ]}
+                    >
+                      {tab}
+                    </Text>
+                  </TouchableOpacity>
+                )
+              )}
+            </View>
 
-        {/* Items */}
-        <View style={styles.itemList}>
-          {items.map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              style={styles.itemCard}
-              activeOpacity={0.8}
-            >
-              <View style={styles.itemIcon}>
-                <Ionicons
-                  name={item.icon as keyof typeof Ionicons.glyphMap}
-                  size={22}
-                  color={Colors.teal}
-                />
-              </View>
-              <View style={styles.itemInfo}>
-                <Text style={styles.itemName}>{item.name}</Text>
-                <Text style={styles.itemBrand}>{item.brand}</Text>
-              </View>
-              <View style={styles.discountBadge}>
-                <Text style={styles.discountText}>{item.discount}</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
+            {/* Items */}
+            <View style={styles.itemList}>
+              {items.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Ionicons
+                    name="gift-outline"
+                    size={40}
+                    color={Colors.textMuted}
+                  />
+                  <Text style={styles.emptyText}>
+                    Sem parceiros disponíveis no momento.
+                  </Text>
+                </View>
+              ) : (
+                items.map((item) => (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={styles.itemCard}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.itemIcon}>
+                      <Ionicons
+                        name={item.icon as keyof typeof Ionicons.glyphMap}
+                        size={22}
+                        color={Colors.teal}
+                      />
+                    </View>
+                    <View style={styles.itemInfo}>
+                      <Text style={styles.itemName}>{item.name}</Text>
+                      <Text style={styles.itemBrand}>{item.brand}</Text>
+                    </View>
+                    <View style={styles.discountBadge}>
+                      <Text style={styles.discountText}>{item.discount}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))
+              )}
+            </View>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -228,5 +282,15 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
     color: Colors.success,
+  },
+  emptyState: {
+    alignItems: "center",
+    paddingVertical: 40,
+    gap: 12,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: Colors.textMuted,
+    textAlign: "center",
   },
 });

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -6,12 +6,15 @@ import {
   ScrollView,
   SafeAreaView,
   TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useFocusEffect } from "@react-navigation/native";
 import { Colors } from "../theme/colors";
 import { GlobalStyles } from "../theme/styles";
-import { mockUser, mockDashboard } from "../mocks";
+import { useAuth } from "../context/AuthContext";
+import { api } from "../services/api";
 import { MetabolicScoreCard } from "../components/MetabolicScoreCard";
 import { SmartAlertsCard } from "../components/SmartAlertsCard";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
@@ -49,12 +52,73 @@ const MetricCard = ({
 );
 
 export default function DashboardScreen({ navigation }: Props) {
-  const scoreColor =
-    mockDashboard.metabolicScore >= 80
-      ? Colors.success
-      : mockDashboard.metabolicScore >= 60
-        ? Colors.teal
-        : Colors.warning;
+  const [dashboardData, setDashboardData] = useState<any>(null);
+  const [profileData, setProfileData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchData = async () => {
+    try {
+      const [dash, profile] = await Promise.all([
+        api.get<any>("/users/dashboard"),
+        api.get<any>("/users/profile"),
+      ]);
+      setDashboardData(dash);
+      setProfileData(profile);
+    } catch (error) {
+      console.error("Erro ao carregar dados do Dashboard:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchData();
+    }, [])
+  );
+
+  if (loading && !dashboardData) {
+    return (
+      <SafeAreaView style={[GlobalStyles.safeArea, { justifyContent: "center", alignItems: "center" }]}>
+        <ActivityIndicator size="large" color={Colors.teal} />
+      </SafeAreaView>
+    );
+  }
+
+  // Fallback defaults in case backend fetches failed
+  const dash = dashboardData || {
+    metabolicScore: 62,
+    protocolProgress: 45,
+    trainingStatus: "Pendente Hoje",
+    nutritionKcal: 1800,
+    nutritionGoal: 2200,
+    nextExamDays: 12,
+    weightProgress: 0,
+    metabolicScoreDetails: { protocolAdherence: 72, wearableData: { sleep: 6.2, recovery: 85, avgHeartRate: 68 }, weightProgress: 45, examsStatus: 90 },
+    alerts: [],
+  };
+
+  const prof = profileData || {
+    name: "Usuário",
+    objective: "Emagrecimento",
+    weight: 133,
+    goalWeight: 110,
+  };
+
+  const initials = prof.name
+    .split(" ")
+    .map((n: string) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2) || "US";
+
+  // Calculate weight bar width
+  const baseWeight = Number(prof.initialWeight) || Number(prof.weight) || 133;
+  const targetWeight = Number(prof.goalWeight) || 110;
+  const currentWeight = Number(prof.weight) || 133;
+  const weightBarPct = baseWeight - targetWeight > 0 
+    ? Math.min(Math.max(0, ((baseWeight - currentWeight) / (baseWeight - targetWeight)) * 100), 100)
+    : 100;
 
   return (
     <SafeAreaView style={GlobalStyles.safeArea}>
@@ -66,13 +130,13 @@ export default function DashboardScreen({ navigation }: Props) {
         <View style={styles.header}>
           <View style={GlobalStyles.row}>
             <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{mockUser.initials}</Text>
+              <Text style={styles.avatarText}>{initials}</Text>
             </View>
             <View style={{ marginLeft: 12 }}>
               <Text style={styles.greeting}>
-                Olá, {mockUser.name.split(" ")[0]} 👋
+                Olá, {prof.name.split(" ")[0]} 👋
               </Text>
-              <Text style={styles.subGreeting}>{mockUser.objective}</Text>
+              <Text style={styles.subGreeting}>{prof.objective}</Text>
             </View>
           </View>
           <TouchableOpacity style={styles.bellBtn}>
@@ -86,8 +150,8 @@ export default function DashboardScreen({ navigation }: Props) {
 
         {/* Score Metabólico Expandido */}
         <MetabolicScoreCard
-          score={mockDashboard.metabolicScore}
-          details={mockDashboard.metabolicScoreDetails}
+          score={dash.metabolicScore}
+          details={dash.metabolicScoreDetails}
         />
 
         {/* 4 Metric Cards */}
@@ -96,26 +160,26 @@ export default function DashboardScreen({ navigation }: Props) {
             icon="list-outline"
             iconColor={Colors.teal}
             label="Protocolo"
-            value={`${mockDashboard.protocolProgress}% Concluído`}
+            value={`${dash.protocolProgress}% Concluído`}
           />
           <MetricCard
             icon="barbell-outline"
             iconColor={Colors.warning}
             label="Treino"
-            value={mockDashboard.trainingStatus}
+            value={dash.trainingStatus}
             valueColor={Colors.warning}
           />
           <MetricCard
             icon="restaurant-outline"
             iconColor={Colors.danger}
             label="Nutrição"
-            value={`${(mockDashboard.nutritionKcal / 1000).toFixed(1)}k / ${(mockDashboard.nutritionGoal / 1000).toFixed(1)}k kcal`}
+            value={`${(dash.nutritionKcal / 1000).toFixed(1)}k / ${(dash.nutritionGoal / 1000).toFixed(1)}k kcal`}
           />
           <MetricCard
             icon="document-text-outline"
             iconColor={Colors.blue}
             label="Próximo Exame"
-            value={`em ${mockDashboard.nextExamDays} dias`}
+            value={`em ${dash.nextExamDays} dias`}
           />
         </View>
 
@@ -124,15 +188,15 @@ export default function DashboardScreen({ navigation }: Props) {
           <View style={GlobalStyles.spaceBetween}>
             <Text style={styles.weightLabel}>Progresso de Peso</Text>
             <Text style={styles.weightDelta}>
-              {mockDashboard.weightProgress === 0
+              {dash.weightProgress === 0
                 ? "-0.0 kg"
-                : `${mockDashboard.weightProgress} kg`}
+                : `${dash.weightProgress > 0 ? "+" : ""}${dash.weightProgress} kg`}
             </Text>
           </View>
           <View style={GlobalStyles.spaceBetween}>
-            <Text style={styles.weightCurrent}>{mockUser.weight} kg</Text>
+            <Text style={styles.weightCurrent}>{currentWeight} kg</Text>
             <Text style={styles.weightGoal}>
-              Meta: {mockUser.goalWeight} kg
+              Meta: {targetWeight} kg
             </Text>
           </View>
           {/* Progress bar */}
@@ -141,12 +205,7 @@ export default function DashboardScreen({ navigation }: Props) {
               style={[
                 styles.weightBarFill,
                 {
-                  width: `${Math.min(
-                    ((mockUser.weight - mockUser.goalWeight) /
-                      (133 - mockUser.goalWeight)) *
-                      100,
-                    100,
-                  )}%`,
+                  width: `${weightBarPct}%`,
                 },
               ]}
             />
@@ -154,7 +213,7 @@ export default function DashboardScreen({ navigation }: Props) {
         </View>
 
         {/* Sistema de Alertas Inteligentes */}
-        <SmartAlertsCard alerts={mockDashboard.alerts} />
+        <SmartAlertsCard alerts={dash.alerts} />
 
         {/* Quick Actions */}
         <Text style={[GlobalStyles.sectionTitle, { marginTop: 24 }]}>

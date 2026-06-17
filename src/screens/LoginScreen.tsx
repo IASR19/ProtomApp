@@ -9,6 +9,8 @@ import {
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -16,6 +18,8 @@ import { Colors } from "../theme/colors";
 import { GlobalStyles } from "../theme/styles";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation";
+import { useAuth } from "../context/AuthContext";
+import { api } from "../services/api";
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, "Login">;
@@ -23,11 +27,63 @@ type Props = {
 
 export default function LoginScreen({ navigation }: Props) {
   const [email, setEmail] = useState("itamar.ribeiro@email.com");
-  const [password, setPassword] = useState("••••••••••••");
+  const [password, setPassword] = useState("123456");
+  const [name, setName] = useState("");
+  const [isRegistering, setIsRegistering] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
-    navigation.navigate("OnboardingChat");
+  const { login, register, loginWithSocial } = useAuth();
+
+  const handleAuth = async () => {
+    if (!email || !password || (isRegistering && !name)) {
+      Alert.alert("Erro", "Por favor, preencha todos os campos.");
+      return;
+    }
+    setLoading(true);
+    try {
+      if (isRegistering) {
+        await register(name, email, password);
+        navigation.replace("OnboardingChat");
+      } else {
+        await login(email, password);
+        if (email === "itamar.ribeiro@email.com") {
+          navigation.replace("MainTabs");
+        } else {
+          navigation.replace("OnboardingChat");
+        }
+      }
+    } catch (err: any) {
+      Alert.alert("Erro", err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSocial = async (provider: "google" | "apple") => {
+    setLoading(true);
+    try {
+      // Se o desenvolvedor digitou um e-mail no campo diferente do padrão, usamos ele na simulação.
+      // Caso contrário, geramos um e-mail aleatório para forçar a criação de uma nova conta de testes.
+      const targetEmail =
+        email && email.includes("@") && email !== "itamar.ribeiro@email.com"
+          ? email
+          : `${provider}-user-${Math.floor(Math.random() * 10000)}@email.com`;
+
+      const { needsProfileSetup } = await loginWithSocial(provider, targetEmail);
+
+      if (needsProfileSetup) {
+        // Novo usuário social: precisa definir nome e senha antes de prosseguir
+        navigation.replace("SocialSetup");
+      } else {
+        // Usuário já existente: vai direto para o app
+        navigation.replace("MainTabs");
+      }
+    } catch (err: any) {
+      Alert.alert("Erro", err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -50,13 +106,39 @@ export default function LoginScreen({ navigation }: Props) {
           </View>
 
           {/* Title */}
-          <Text style={styles.title}>Bem-vindo de volta</Text>
+          <Text style={styles.title}>
+            {isRegistering ? "Criar nova conta" : "Bem-vindo de volta"}
+          </Text>
           <Text style={styles.subtitle}>
-            Acesse sua conta para continuar seu protocolo.
+            {isRegistering 
+              ? "Crie sua conta para iniciar seu protocolo personalizado."
+              : "Acesse sua conta para continuar seu protocolo."}
           </Text>
 
           {/* Form */}
           <View style={styles.form}>
+            {isRegistering && (
+              <>
+                <Text style={GlobalStyles.inputLabel}>Nome Completo</Text>
+                <View style={styles.inputWrapper}>
+                  <Ionicons
+                    name="person-outline"
+                    size={18}
+                    color={Colors.textMuted}
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    value={name}
+                    onChangeText={setName}
+                    placeholderTextColor={Colors.textMuted}
+                    placeholder="Itamar Ribeiro"
+                  />
+                </View>
+                <View style={styles.spacer} />
+              </>
+            )}
+
             <Text style={GlobalStyles.inputLabel}>E-mail</Text>
             <View style={styles.inputWrapper}>
               <Ionicons
@@ -107,10 +189,11 @@ export default function LoginScreen({ navigation }: Props) {
             </View>
           </View>
 
-          {/* Login Button */}
+          {/* Login/Register Button */}
           <TouchableOpacity
             style={styles.btn}
-            onPress={handleLogin}
+            onPress={handleAuth}
+            disabled={loading}
             activeOpacity={0.85}
           >
             <LinearGradient
@@ -119,7 +202,13 @@ export default function LoginScreen({ navigation }: Props) {
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
             >
-              <Text style={GlobalStyles.btnPrimaryText}>Entrar</Text>
+              {loading ? (
+                <ActivityIndicator color="#ffffff" size="small" />
+              ) : (
+                <Text style={GlobalStyles.btnPrimaryText}>
+                  {isRegistering ? "Registrar" : "Entrar"}
+                </Text>
+              )}
             </LinearGradient>
           </TouchableOpacity>
 
@@ -131,7 +220,11 @@ export default function LoginScreen({ navigation }: Props) {
           </View>
 
           {/* Social Buttons */}
-          <TouchableOpacity style={GlobalStyles.btnOutline}>
+          <TouchableOpacity 
+            style={GlobalStyles.btnOutline}
+            onPress={() => handleSocial("apple")}
+            disabled={loading}
+          >
             <View style={GlobalStyles.row}>
               <Ionicons
                 name="logo-apple"
@@ -146,7 +239,11 @@ export default function LoginScreen({ navigation }: Props) {
 
           <View style={{ height: 12 }} />
 
-          <TouchableOpacity style={GlobalStyles.btnOutline}>
+          <TouchableOpacity 
+            style={GlobalStyles.btnOutline}
+            onPress={() => handleSocial("google")}
+            disabled={loading}
+          >
             <View style={GlobalStyles.row}>
               <Ionicons
                 name="logo-google"
@@ -157,6 +254,20 @@ export default function LoginScreen({ navigation }: Props) {
                 Google
               </Text>
             </View>
+          </TouchableOpacity>
+
+          <View style={{ height: 24 }} />
+
+          {/* Register Toggle Link */}
+          <TouchableOpacity 
+            onPress={() => setIsRegistering(!isRegistering)}
+            style={{ alignItems: "center" }}
+          >
+            <Text style={{ color: Colors.teal, fontWeight: "600", fontSize: 14 }}>
+              {isRegistering 
+                ? "Já possui uma conta? Faça Login" 
+                : "Não possui conta? Cadastre-se"}
+            </Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>

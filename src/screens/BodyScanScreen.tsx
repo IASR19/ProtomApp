@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -11,7 +11,6 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../theme/colors";
 import { GlobalStyles } from "../theme/styles";
-import { mockBodyScan } from "../mocks";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation";
 
@@ -144,8 +143,26 @@ const silStyles = StyleSheet.create({
   },
 });
 
+import { api } from "../services/api";
+import { ActivityIndicator } from "react-native";
+
 export default function BodyScanScreen({ navigation }: Props) {
-  const data = mockBodyScan;
+  const [scanData, setScanData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchBodyScan = async () => {
+      try {
+        const result = await api.get<any>("/users/body-scan");
+        setScanData(result);
+      } catch (err: any) {
+        console.warn("Erro ao buscar body scan:", err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchBodyScan();
+  }, []);
 
   const scanAnim = useRef(new Animated.Value(0)).current;
 
@@ -176,7 +193,30 @@ export default function BodyScanScreen({ navigation }: Props) {
     outputRange: [0, 1, 1, 0],
   });
 
+  if (loading && !scanData) {
+    return (
+      <SafeAreaView style={[GlobalStyles.safeArea, { justifyContent: "center", alignItems: "center" }]}>
+        <ActivityIndicator size="large" color={Colors.teal} />
+      </SafeAreaView>
+    );
+  }
+
+  const data = scanData || {
+    bodyFat: 28.5,
+    bodyFatDelta: -2.1,
+    visceralFat: 12,
+    visceralFatDelta: -1,
+    weight: 128,
+    weightDelta: -5,
+    waist: 112,
+    waistDelta: -4,
+    leanMass: 42,
+    leanMassDelta: 0,
+    comparisonLabel: "Comparativo: Mês 1 vs Mês 2",
+  };
+
   return (
+
     <SafeAreaView style={GlobalStyles.safeArea}>
       <ScrollView
         contentContainerStyle={styles.container}

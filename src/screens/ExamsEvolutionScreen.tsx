@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,17 +6,29 @@ import {
   ScrollView,
   SafeAreaView,
   TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../theme/colors";
 import { GlobalStyles } from "../theme/styles";
-import { mockExamEvolution } from "../mocks";
+import { api } from "../services/api";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation";
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, "ExamsEvolution">;
 };
+
+interface ExamEvolution {
+  id: string;
+  name: string;
+  unit: string;
+  current: number;
+  previous: number;
+  monthCurrent: string;
+  monthPrevious: string;
+  status: string;
+}
 
 const MiniBar = ({
   value,
@@ -38,6 +50,21 @@ const MiniBar = ({
 );
 
 export default function ExamsEvolutionScreen({ navigation }: Props) {
+  const [exams, setExams] = useState<ExamEvolution[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api
+      .get<ExamEvolution[]>("/exams/evolution")
+      .then((data) => setExams(data))
+      .catch((err) =>
+        console.warn("Erro ao carregar evolução de exames:", err.message)
+      )
+      .finally(() => setLoading(false));
+  }, []);
+
+  const allNormal = exams.length > 0 && exams.every((e) => e.status === "normal");
+
   return (
     <SafeAreaView style={GlobalStyles.safeArea}>
       <ScrollView
@@ -61,85 +88,97 @@ export default function ExamsEvolutionScreen({ navigation }: Props) {
           />
         </View>
 
-        {/* Success Banner */}
-        <View style={styles.successBanner}>
-          <Ionicons name="checkmark-circle" size={20} color={Colors.success} />
-          <Text style={styles.successText}>
-            {" "}
-            Todos os marcadores analisados estão dentro do padrão ideal.
-          </Text>
-        </View>
-
-        {/* Charts */}
-        <View style={styles.chartList}>
-          {mockExamEvolution.map((exam) => {
-            const improving = exam.current < exam.previous;
-            const max = Math.max(exam.previous, exam.current) * 1.2;
-            return (
-              <View key={exam.id} style={styles.chartCard}>
-                <View style={GlobalStyles.spaceBetween}>
-                  <Text style={styles.chartName}>{exam.name}</Text>
-                  <View style={GlobalStyles.row}>
-                    <Text style={styles.chartValue}>
-                      {exam.current}{" "}
-                      <Text style={styles.chartUnit}>{exam.unit}</Text>
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Delta */}
-                <View style={GlobalStyles.row}>
-                  <Ionicons
-                    name={improving ? "arrow-down" : "arrow-up"}
-                    size={14}
-                    color={improving ? Colors.success : Colors.danger}
-                  />
-                  <Text
-                    style={[
-                      styles.chartDelta,
-                      { color: improving ? Colors.success : Colors.danger },
-                    ]}
-                  >
-                    {" "}
-                    de {exam.previous}
-                  </Text>
-                </View>
-
-                {/* Bars */}
-                <View style={styles.barsRow}>
-                  <View style={styles.barGroup}>
-                    <MiniBar
-                      value={exam.previous}
-                      max={max}
-                      color={Colors.bgCardLight}
-                    />
-                    <Text style={styles.barLabel}>{exam.monthPrevious}</Text>
-                  </View>
-                  <View style={styles.barGroup}>
-                    <MiniBar
-                      value={exam.current}
-                      max={max}
-                      color={Colors.teal}
-                    />
-                    <Text style={styles.barLabel}>{exam.monthCurrent}</Text>
-                  </View>
-                </View>
-              </View>
-            );
-          })}
-        </View>
-
-        {/* Warning box */}
-        <View style={styles.warningBox}>
-          <View style={GlobalStyles.row}>
-            <Ionicons name="warning" size={14} color={Colors.danger} />
-            <Text style={styles.warningTitle}> E se houvesse alteração?</Text>
+        {loading ? (
+          <ActivityIndicator
+            size="large"
+            color={Colors.teal}
+            style={{ marginTop: 40 }}
+          />
+        ) : exams.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="pulse-outline" size={48} color={Colors.textMuted} />
+            <Text style={styles.emptyText}>Nenhum dado de evolução.</Text>
+            <Text style={styles.emptySubText}>
+              Envie seus exames para ver a evolução dos marcadores ao longo do tempo.
+            </Text>
           </View>
-          <Text style={styles.warningText}>
-            Se a Glicemia subisse para 110 mg/dL, o gráfico ficaria vermelho e
-            um alerta visual seria ativado no Dashboard.
-          </Text>
-        </View>
+        ) : (
+          <>
+            {/* Success Banner */}
+            {allNormal && (
+              <View style={styles.successBanner}>
+                <Ionicons
+                  name="checkmark-circle"
+                  size={20}
+                  color={Colors.success}
+                />
+                <Text style={styles.successText}>
+                  {" "}
+                  Todos os marcadores analisados estão dentro do padrão ideal.
+                </Text>
+              </View>
+            )}
+
+            {/* Charts */}
+            <View style={styles.chartList}>
+              {exams.map((exam) => {
+                const improving = exam.current < exam.previous;
+                const max = Math.max(exam.previous, exam.current) * 1.2;
+                return (
+                  <View key={exam.id} style={styles.chartCard}>
+                    <View style={GlobalStyles.spaceBetween}>
+                      <Text style={styles.chartName}>{exam.name}</Text>
+                      <View style={GlobalStyles.row}>
+                        <Text style={styles.chartValue}>
+                          {exam.current}{" "}
+                          <Text style={styles.chartUnit}>{exam.unit}</Text>
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Delta */}
+                    <View style={GlobalStyles.row}>
+                      <Ionicons
+                        name={improving ? "arrow-down" : "arrow-up"}
+                        size={14}
+                        color={improving ? Colors.success : Colors.danger}
+                      />
+                      <Text
+                        style={[
+                          styles.chartDelta,
+                          { color: improving ? Colors.success : Colors.danger },
+                        ]}
+                      >
+                        {" "}
+                        de {exam.previous}
+                      </Text>
+                    </View>
+
+                    {/* Bars */}
+                    <View style={styles.barsRow}>
+                      <View style={styles.barGroup}>
+                        <MiniBar
+                          value={exam.previous}
+                          max={max}
+                          color={Colors.bgCardLight}
+                        />
+                        <Text style={styles.barLabel}>{exam.monthPrevious}</Text>
+                      </View>
+                      <View style={styles.barGroup}>
+                        <MiniBar
+                          value={exam.current}
+                          max={max}
+                          color={Colors.teal}
+                        />
+                        <Text style={styles.barLabel}>{exam.monthCurrent}</Text>
+                      </View>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -235,23 +274,21 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.textMuted,
   },
-  warningBox: {
-    marginTop: 20,
-    backgroundColor: "rgba(239,68,68,0.08)",
-    borderRadius: 10,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: Colors.danger,
-    gap: 8,
+  emptyState: {
+    alignItems: "center",
+    paddingVertical: 40,
+    gap: 12,
   },
-  warningTitle: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: Colors.danger,
-  },
-  warningText: {
-    fontSize: 13,
+  emptyText: {
+    fontSize: 16,
+    fontWeight: "600",
     color: Colors.textSecondary,
-    lineHeight: 18,
+    textAlign: "center",
+  },
+  emptySubText: {
+    fontSize: 13,
+    color: Colors.textMuted,
+    textAlign: "center",
+    lineHeight: 20,
   },
 });

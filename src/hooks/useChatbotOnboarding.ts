@@ -223,7 +223,7 @@ export function useChatbotOnboarding() {
           },
         };
 
-      case "meals_count":
+      case "meals_schedule":
         return {
           _id: Date.now(),
           text: "Perfeito! Digite os horários aproximados das suas refeições, separados por vírgula.\n\nExemplo: 08:00, 12:00, 16:00, 20:00",
@@ -231,7 +231,7 @@ export function useChatbotOnboarding() {
           user: BOT_USER,
         };
 
-      case "meals_schedule":
+      case "supplements":
         if (data.objective === "hipertrofia") {
           return {
             _id: Date.now(),
@@ -255,7 +255,7 @@ export function useChatbotOnboarding() {
           };
         }
 
-      case "supplements":
+      case "completed":
         return {
           _id: Date.now(),
           text: "🎉 Perfeito! Seu perfil está completo.\n\nEstou gerando seu protocolo personalizado...",
@@ -375,7 +375,15 @@ export function useChatbotOnboarding() {
       setCurrentStep(nextStep);
 
       if (nextStep === "completed") {
-        setIsCompleted(true);
+        const nextQuestion = getNextQuestion("completed", updatedData);
+        if (nextQuestion) {
+          setTimeout(() => {
+            setMessages((prev) => [nextQuestion, ...prev]);
+          }, 800);
+        }
+        setTimeout(() => {
+          setIsCompleted(true);
+        }, 2500);
         return;
       }
 

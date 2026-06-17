@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,12 +6,13 @@ import {
   ScrollView,
   SafeAreaView,
   TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "../theme/colors";
 import { GlobalStyles } from "../theme/styles";
-import { mockExams } from "../mocks";
+import { api } from "../services/api";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation";
 
@@ -19,7 +20,26 @@ type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, "ExamsUpload">;
 };
 
+interface Exam {
+  id: string;
+  name: string;
+  date: string;
+  status: string;
+  type: string;
+}
+
 export default function ExamsUploadScreen({ navigation }: Props) {
+  const [exams, setExams] = useState<Exam[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api
+      .get<Exam[]>("/exams")
+      .then((data) => setExams(data))
+      .catch((err) => console.warn("Erro ao carregar exames:", err.message))
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
     <SafeAreaView style={GlobalStyles.safeArea}>
       <ScrollView
@@ -64,36 +84,60 @@ export default function ExamsUploadScreen({ navigation }: Props) {
           Exames Recentes
         </Text>
 
-        <View style={styles.examsList}>
-          {mockExams.map((exam) => (
-            <View key={exam.id} style={styles.examCard}>
-              <View
-                style={[
-                  styles.examIcon,
-                  exam.type === "pdf" ? styles.examIconPdf : styles.examIconImg,
-                ]}
-              >
-                <Ionicons
-                  name={exam.type === "pdf" ? "document-text" : "image"}
-                  size={20}
-                  color={exam.type === "pdf" ? Colors.danger : Colors.blue}
-                />
+        {loading ? (
+          <ActivityIndicator
+            size="large"
+            color={Colors.teal}
+            style={{ marginTop: 20 }}
+          />
+        ) : exams.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons
+              name="document-outline"
+              size={40}
+              color={Colors.textMuted}
+            />
+            <Text style={styles.emptyText}>
+              Nenhum exame enviado ainda.
+            </Text>
+            <Text style={styles.emptySubText}>
+              Seus exames analisados pela IA aparecerão aqui.
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.examsList}>
+            {exams.map((exam) => (
+              <View key={exam.id} style={styles.examCard}>
+                <View
+                  style={[
+                    styles.examIcon,
+                    exam.type === "pdf"
+                      ? styles.examIconPdf
+                      : styles.examIconImg,
+                  ]}
+                >
+                  <Ionicons
+                    name={exam.type === "pdf" ? "document-text" : "image"}
+                    size={20}
+                    color={exam.type === "pdf" ? Colors.danger : Colors.blue}
+                  />
+                </View>
+                <View style={styles.examInfo}>
+                  <Text style={styles.examName}>{exam.name}</Text>
+                  <Text style={styles.examDate}>{exam.date}</Text>
+                </View>
+                <View style={styles.examStatus}>
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={14}
+                    color={Colors.success}
+                  />
+                  <Text style={styles.examStatusText}> {exam.status}</Text>
+                </View>
               </View>
-              <View style={styles.examInfo}>
-                <Text style={styles.examName}>{exam.name}</Text>
-                <Text style={styles.examDate}>{exam.date}</Text>
-              </View>
-              <View style={styles.examStatus}>
-                <Ionicons
-                  name="checkmark-circle"
-                  size={14}
-                  color={Colors.success}
-                />
-                <Text style={styles.examStatusText}> {exam.status}</Text>
-              </View>
-            </View>
-          ))}
-        </View>
+            ))}
+          </View>
+        )}
 
         {/* CTA */}
         <TouchableOpacity
@@ -221,6 +265,23 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.success,
     fontWeight: "600",
+  },
+  emptyState: {
+    alignItems: "center",
+    paddingVertical: 32,
+    gap: 10,
+  },
+  emptyText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: Colors.textSecondary,
+    textAlign: "center",
+  },
+  emptySubText: {
+    fontSize: 13,
+    color: Colors.textMuted,
+    textAlign: "center",
+    lineHeight: 20,
   },
   analyzeBtn: {
     borderRadius: 12,

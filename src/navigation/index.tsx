@@ -21,10 +21,12 @@ import BodyScanScreen from "../screens/BodyScanScreen";
 import PrescriptionsScreen from "../screens/PrescriptionsScreen";
 import PartnersScreen from "../screens/PartnersScreen";
 import ProfileScreen from "../screens/ProfileScreen";
+import SocialSetupScreen from "../screens/SocialSetupScreen";
 
 export type RootStackParamList = {
   Disclaimer: undefined;
   Login: undefined;
+  SocialSetup: undefined;
   OnboardingChat: undefined;
   Objective: undefined;
   Biometrics: undefined;
@@ -106,6 +108,7 @@ export function AppNavigator() {
     >
       <Stack.Screen name="Disclaimer" component={DisclaimerScreen} />
       <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="SocialSetup" component={SocialSetupScreen} />
       <Stack.Screen name="OnboardingChat" component={OnboardingChatScreen} />
       <Stack.Screen name="Objective" component={ObjectiveScreen} />
       <Stack.Screen name="Biometrics" component={BiometricsScreen} />

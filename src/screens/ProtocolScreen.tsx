@@ -6,18 +6,16 @@ import {
   ScrollView,
   SafeAreaView,
   TouchableOpacity,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Circle, G } from "react-native-svg";
+import { useFocusEffect } from "@react-navigation/native";
 import { Colors } from "../theme/colors";
 import { GlobalStyles } from "../theme/styles";
-import {
-  mockProtocol,
-  mockProtocolMeta,
-  mockMedicationStack,
-  mockSupplementStack,
-} from "../mocks";
+import { api } from "../services/api";
 
 const TAG_COLORS: Record<string, { bg: string; text: string; border: string }> =
   {
@@ -100,7 +98,7 @@ function TaskCard({
   task,
   onToggle,
 }: {
-  task: (typeof mockProtocol.tasks)[0];
+  task: any;
   onToggle: () => void;
 }) {
   const tag = TAG_COLORS[task.tag] ?? {
@@ -146,7 +144,7 @@ function PhaseSection({
 }: {
   label: string;
   emoji: string;
-  tasks: typeof mockProtocol.tasks;
+  tasks: any[];
   onToggle: (id: string) => void;
 }) {
   if (tasks.length === 0) {
@@ -178,8 +176,11 @@ function PhaseSection({
   );
 }
 
-function MedicationCard() {
-  const med = mockMedicationStack[0];
+function MedicationCard({ medications }: { medications: any[] }) {
+  if (!medications || medications.length === 0) {
+    return null;
+  }
+  const med = medications[0];
   return (
     <View style={styles.stackCard}>
       <LinearGradient
@@ -211,7 +212,7 @@ function MedicationCard() {
           </View>
           <View style={styles.dividerThin} />
           <Text style={styles.instructionsLabel}>INSTRUÇÕES</Text>
-          {med.instructions.map((ins, i) => (
+          {med.instructions && med.instructions.map((ins: string, i: number) => (
             <View key={i} style={styles.instructionRow}>
               <Ionicons
                 name="chevron-forward"
@@ -222,7 +223,7 @@ function MedicationCard() {
             </View>
           ))}
           <View style={styles.combinationsRow}>
-            {med.combinations.map((c, i) => (
+            {med.combinations && med.combinations.map((c: string, i: number) => (
               <View key={i} style={styles.combPill}>
                 <Ionicons name="link-outline" size={11} color={Colors.teal} />
                 <Text style={styles.combText}> {c}</Text>
@@ -235,7 +236,10 @@ function MedicationCard() {
   );
 }
 
-function SupplementCard() {
+function SupplementCard({ supplements }: { supplements: any[] }) {
+  if (!supplements || supplements.length === 0) {
+    return null;
+  }
   return (
     <View style={styles.stackCard}>
       <LinearGradient
@@ -251,12 +255,12 @@ function SupplementCard() {
             BIOHACKING STACK
           </Text>
         </View>
-        {mockSupplementStack.map((s, i) => (
+        {supplements.map((s, i) => (
           <View key={s.id}>
             <View style={styles.suppRow}>
               <View style={styles.suppTimeCol}>
                 <Ionicons
-                  name={s.icon as keyof typeof Ionicons.glyphMap}
+                  name={(s.icon || "leaf-outline") as keyof typeof Ionicons.glyphMap}
                   size={16}
                   color={Colors.teal}
                 />
@@ -270,7 +274,7 @@ function SupplementCard() {
                 <Text style={styles.suppPurpose}>{s.purpose}</Text>
               </View>
             </View>
-            {i < mockSupplementStack.length - 1 && (
+            {i < supplements.length - 1 && (
               <View style={styles.dividerThin} />
             )}
           </View>
@@ -280,21 +284,117 @@ function SupplementCard() {
   );
 }
 
-export default function ProtocolScreen() {
-  const [tasks, setTasks] = useState(mockProtocol.tasks);
+function MealPlanCard({ meals }: { meals: any[] }) {
+  if (!meals || meals.length === 0) {
+    return null;
+  }
+  return (
+    <View style={styles.stackCard}>
+      <LinearGradient
+        colors={["#0D2B18", "#05140A"]}
+        style={styles.stackGradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <View style={styles.stackTitleRow}>
+          <Ionicons name="restaurant" size={18} color="#4ADE80" />
+          <Text style={[styles.stackTitle, { color: "#4ADE80" }]}>
+            {" "}
+            PLANO ALIMENTAR (DIETA)
+          </Text>
+        </View>
+        {meals.map((m, i) => (
+          <View key={m.id || i}>
+            <View style={styles.mealPlanRow}>
+              <View style={styles.mealPlanInfo}>
+                <View style={GlobalStyles.spaceBetween}>
+                  <Text style={styles.mealPlanName}>{m.meal}</Text>
+                  <Text style={styles.mealPlanKcal}>{m.totalKcal} kcal</Text>
+                </View>
+                <Text style={styles.mealPlanMacros}>
+                  Proteína: {m.proteinGrams}g ({m.proteinPercent}%) • Carboidrato: {m.carbGrams}g ({m.carbPercent}%) • Gordura: {m.fatGrams}g ({m.fatPercent}%)
+                </Text>
+                {m.description ? (
+                  <Text style={styles.mealPlanDescription}>{m.description}</Text>
+                ) : null}
+              </View>
+            </View>
+            {i < meals.length - 1 && (
+              <View style={styles.dividerThin} />
+            )}
+          </View>
+        ))}
+      </LinearGradient>
+    </View>
+  );
+}
 
-  const toggleTask = (id: string) => {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, done: !t.done } : t)),
-    );
+export default function ProtocolScreen({ navigation }: any) {
+  const [protocol, setProtocol] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchProtocol = async () => {
+    try {
+      const data = await api.get<any>("/protocol");
+      setProtocol(data);
+    } catch (err: any) {
+      console.warn("Erro ao buscar protocolo:", err.message);
+      // Se não houver protocolo, deixa como null e renderizará sugestão de criar
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const done = tasks.filter((t) => t.done).length;
-  const adherence = Math.round((done / tasks.length) * 100);
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchProtocol();
+    }, [])
+  );
 
-  const morning = tasks.filter((t) => t.time < "12:00");
-  const afternoon = tasks.filter((t) => t.time >= "12:00" && t.time < "18:00");
-  const evening = tasks.filter((t) => t.time >= "18:00");
+  const toggleTask = async (id: string) => {
+    try {
+      await api.patch(`/protocol/tasks/${id}`);
+      await fetchProtocol(); // recarrega o protocolo atualizado
+    } catch (err: any) {
+      Alert.alert("Erro", "Não foi possível atualizar a tarefa: " + err.message);
+    }
+  };
+
+  if (loading && !protocol) {
+    return (
+      <SafeAreaView style={[GlobalStyles.safeArea, { justifyContent: "center", alignItems: "center" }]}>
+        <ActivityIndicator size="large" color={Colors.teal} />
+      </SafeAreaView>
+    );
+  }
+
+  if (!protocol) {
+    return (
+      <SafeAreaView style={[GlobalStyles.safeArea, { justifyContent: "center", alignItems: "center", padding: 24 }]}>
+        <Ionicons name="alert-circle-outline" size={64} color={Colors.textMuted} style={{ marginBottom: 16 }} />
+        <Text style={{ color: Colors.textPrimary, fontSize: 18, fontWeight: "700", marginBottom: 8, textAlign: "center" }}>
+          Nenhum Protocolo Ativo
+        </Text>
+        <Text style={{ color: Colors.textSecondary, fontSize: 14, textAlign: "center", marginBottom: 24 }}>
+          Você ainda não possui um protocolo médico ativo gerado pelo sistema.
+        </Text>
+        <TouchableOpacity
+          style={GlobalStyles.btnOutline}
+          onPress={() => navigation.navigate("OnboardingChat")}
+        >
+          <Text style={GlobalStyles.btnOutlineText}>Gerar Novo Protocolo</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
+  const tasks = protocol.tasks || [];
+  const adherence = protocol.adherence ?? 0;
+  const done = tasks.filter((t: any) => t.done).length;
+
+  const morning = tasks.filter((t: any) => t.time < "12:00");
+  const afternoon = tasks.filter((t: any) => t.time >= "12:00" && t.time < "18:00");
+  const evening = tasks.filter((t: any) => t.time >= "18:00");
 
   return (
     <SafeAreaView style={GlobalStyles.safeArea}>
@@ -312,14 +412,16 @@ export default function ProtocolScreen() {
           <View>
             <Text style={styles.screenTitle}>PROTOCOLO ATIVO</Text>
             <Text style={styles.doctorInfo}>
-              v{mockProtocolMeta.version} • {mockProtocolMeta.updatedAt}
+              Versão {protocol.version}
             </Text>
           </View>
-          <Ionicons
-            name="options-outline"
-            size={22}
-            color={Colors.textSecondary}
-          />
+          <TouchableOpacity style={{ padding: 4 }} onPress={fetchProtocol}>
+            <Ionicons
+              name="refresh-outline"
+              size={22}
+              color={Colors.textSecondary}
+            />
+          </TouchableOpacity>
         </View>
 
         {/* Objective badge */}
@@ -330,10 +432,10 @@ export default function ProtocolScreen() {
           end={{ x: 1, y: 0 }}
         >
           <Ionicons name="flag" size={14} color={Colors.teal} />
-          <Text style={styles.objText}> {mockProtocolMeta.objective}</Text>
+          <Text style={styles.objText}> {protocol.objective}</Text>
           <View style={styles.reviewPill}>
             <Text style={styles.reviewText}>
-              Revisão {mockProtocolMeta.nextReview}
+              Revisão {protocol.nextReview}
             </Text>
           </View>
         </LinearGradient>
@@ -348,22 +450,22 @@ export default function ProtocolScreen() {
           {[
             {
               label: "RECUPERAÇÃO",
-              value: `${mockProtocol.recovery}%`,
+              value: `${protocol.recovery}%`,
               color: Colors.teal,
             },
             {
               label: "SONO (OURA)",
-              value: mockProtocol.sleep,
+              value: protocol.sleep || "N/A",
               color: Colors.blue,
             },
             {
               label: "HIDRATAÇÃO",
-              value: mockProtocol.hydration,
+              value: protocol.hydration || "N/A",
               color: Colors.blue,
             },
             {
               label: "JEJUM",
-              value: mockProtocol.fastingHours,
+              value: protocol.fastingHours || "N/A",
               color: Colors.purple,
             },
           ].map((m) => (
@@ -465,16 +567,16 @@ export default function ProtocolScreen() {
         />
 
         {/* Stacks */}
-        <MedicationCard />
-        <SupplementCard />
+        <MealPlanCard meals={protocol.meals} />
+        <MedicationCard medications={protocol.medications} />
+        <SupplementCard supplements={protocol.supplements} />
 
         {/* Alert */}
         <View style={styles.alertBox}>
           <Ionicons name="shield-checkmark" size={16} color={Colors.blue} />
           <Text style={styles.alertText}>
             {" "}
-            Protocolo de caráter orientacional. Responsabilidade clínica
-            exclusiva do médico responsável ({mockProtocolMeta.crm}).
+            Protocolo de caráter orientacional.
           </Text>
         </View>
       </ScrollView>
@@ -749,5 +851,33 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     flex: 1,
     lineHeight: 16,
+  },
+  mealPlanRow: {
+    paddingVertical: 8,
+  },
+  mealPlanInfo: {
+    flex: 1,
+    gap: 4,
+  },
+  mealPlanName: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: Colors.textPrimary,
+  },
+  mealPlanKcal: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: Colors.teal,
+  },
+  mealPlanMacros: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    lineHeight: 16,
+  },
+  mealPlanDescription: {
+    fontSize: 13,
+    color: Colors.textPrimary,
+    lineHeight: 18,
+    marginTop: 4,
   },
 });

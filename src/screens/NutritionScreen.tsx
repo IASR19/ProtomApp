@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,7 +11,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "../theme/colors";
 import { GlobalStyles } from "../theme/styles";
-import { mockNutrition } from "../mocks";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation";
 
@@ -61,9 +60,60 @@ const macroStyles = StyleSheet.create({
   fill: { height: "100%", borderRadius: 3 },
 });
 
+import { api } from "../services/api";
+import { ActivityIndicator } from "react-native";
+
 export default function NutritionScreen({ navigation }: Props) {
   const [analysed, setAnalysed] = useState(true);
-  const data = mockNutrition;
+  const [mealData, setMealData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchMeal = async () => {
+      try {
+        const result = await api.get<any>("/nutrition/last-meal");
+        setMealData(result);
+      } catch (err: any) {
+        console.warn("Erro ao buscar refeição:", err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchMeal();
+  }, []);
+
+  if (loading && !mealData) {
+    return (
+      <SafeAreaView style={[GlobalStyles.safeArea, { justifyContent: "center", alignItems: "center" }]}>
+        <ActivityIndicator size="large" color={Colors.teal} />
+      </SafeAreaView>
+    );
+  }
+
+  const data = mealData || {
+    meal: "Almoço Estratégico",
+    totalKcal: 450,
+    goalKcal: 500,
+    proteinGrams: 40,
+    proteinPercent: 45,
+    carbGrams: 30,
+    carbPercent: 35,
+    fatGrams: 15,
+    fatPercent: 20,
+  };
+
+  const protein = {
+    grams: data.proteinGrams ?? 40,
+    percent: data.proteinPercent ?? 45,
+  };
+  const carb = {
+    grams: data.carbGrams ?? 30,
+    percent: data.carbPercent ?? 35,
+  };
+  const fat = {
+    grams: data.fatGrams ?? 15,
+    percent: data.fatPercent ?? 20,
+  };
 
   const withinGoal = data.totalKcal <= data.goalKcal;
 
@@ -153,20 +203,20 @@ export default function NutritionScreen({ navigation }: Props) {
 
           <MacroBar
             label="Proteína"
-            grams={data.protein.grams}
-            percent={data.protein.percent}
+            grams={protein.grams}
+            percent={protein.percent}
             color={Colors.blue}
           />
           <MacroBar
             label="Carboidrato"
-            grams={data.carb.grams}
-            percent={data.carb.percent}
+            grams={carb.grams}
+            percent={carb.percent}
             color={Colors.warning}
           />
           <MacroBar
             label="Gordura"
-            grams={data.fat.grams}
-            percent={data.fat.percent}
+            grams={fat.grams}
+            percent={fat.percent}
             color={Colors.purple}
           />
         </View>

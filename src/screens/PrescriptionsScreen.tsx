@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,11 +6,12 @@ import {
   ScrollView,
   SafeAreaView,
   TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../theme/colors";
 import { GlobalStyles } from "../theme/styles";
-import { mockPrescriptions } from "../mocks";
+import { api } from "../services/api";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation";
 
@@ -18,7 +19,28 @@ interface Props {
   navigation: NativeStackNavigationProp<RootStackParamList, "Prescriptions">;
 }
 
+interface Prescription {
+  id: string;
+  title: string;
+  sentBy: string;
+  date: string;
+  status: string;
+  statusType: string;
+  icon: string;
+}
+
 export default function PrescriptionsScreen({ navigation }: Props) {
+  const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api
+      .get<Prescription[]>("/prescriptions")
+      .then((data) => setPrescriptions(data))
+      .catch((err) => console.warn("Erro ao carregar receitas:", err.message))
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
     <SafeAreaView style={GlobalStyles.safeArea}>
       <ScrollView
@@ -51,53 +73,75 @@ export default function PrescriptionsScreen({ navigation }: Props) {
           </Text>
         </TouchableOpacity>
 
-        {/* Prescriptions List */}
-        <View style={styles.list}>
-          {mockPrescriptions.map((item) => {
-            const isSigned = item.statusType === "signed";
-            return (
-              <TouchableOpacity
-                key={item.id}
-                style={styles.card}
-                activeOpacity={0.8}
-              >
-                <View
-                  style={[
-                    styles.iconBox,
-                    isSigned ? styles.iconBoxSigned : styles.iconBoxVerified,
-                  ]}
+        {loading ? (
+          <ActivityIndicator
+            size="large"
+            color={Colors.teal}
+            style={{ marginTop: 40 }}
+          />
+        ) : prescriptions.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons
+              name="document-text-outline"
+              size={48}
+              color={Colors.textMuted}
+            />
+            <Text style={styles.emptyText}>
+              Nenhum documento encontrado ainda.
+            </Text>
+            <Text style={styles.emptySubText}>
+              Documentos enviados pelo seu médico aparecerão aqui.
+            </Text>
+          </View>
+        ) : (
+          /* Prescriptions List */
+          <View style={styles.list}>
+            {prescriptions.map((item) => {
+              const isSigned = item.statusType === "signed";
+              return (
+                <TouchableOpacity
+                  key={item.id}
+                  style={styles.card}
+                  activeOpacity={0.8}
                 >
-                  <Ionicons
-                    name={item.icon as keyof typeof Ionicons.glyphMap}
-                    size={20}
-                    color={isSigned ? Colors.blue : Colors.danger}
-                  />
-                </View>
-
-                <View style={styles.cardInfo}>
-                  <Text style={styles.cardTitle}>{item.title}</Text>
-                  <Text style={styles.cardMeta}>
-                    Enviado por {item.sentBy} em {item.date}
-                  </Text>
-                  <View style={GlobalStyles.row}>
+                  <View
+                    style={[
+                      styles.iconBox,
+                      isSigned ? styles.iconBoxSigned : styles.iconBoxVerified,
+                    ]}
+                  >
                     <Ionicons
-                      name="checkmark-circle"
-                      size={12}
-                      color={Colors.success}
+                      name={item.icon as keyof typeof Ionicons.glyphMap}
+                      size={20}
+                      color={isSigned ? Colors.blue : Colors.danger}
                     />
-                    <Text style={styles.cardStatus}> {item.status}</Text>
                   </View>
-                </View>
 
-                <Ionicons
-                  name="chevron-forward"
-                  size={16}
-                  color={Colors.textMuted}
-                />
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+                  <View style={styles.cardInfo}>
+                    <Text style={styles.cardTitle}>{item.title}</Text>
+                    <Text style={styles.cardMeta}>
+                      Enviado por {item.sentBy} em {item.date}
+                    </Text>
+                    <View style={GlobalStyles.row}>
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={12}
+                        color={Colors.success}
+                      />
+                      <Text style={styles.cardStatus}> {item.status}</Text>
+                    </View>
+                  </View>
+
+                  <Ionicons
+                    name="chevron-forward"
+                    size={16}
+                    color={Colors.textMuted}
+                  />
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
 
         {/* Legal Notice */}
         <View style={styles.legalBox}>
@@ -192,6 +236,23 @@ const styles = StyleSheet.create({
     color: Colors.success,
     fontWeight: "500",
   },
+  emptyState: {
+    alignItems: "center",
+    paddingVertical: 40,
+    gap: 12,
+  },
+  emptyText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: Colors.textSecondary,
+    textAlign: "center",
+  },
+  emptySubText: {
+    fontSize: 13,
+    color: Colors.textMuted,
+    textAlign: "center",
+    lineHeight: 20,
+  },
   legalBox: {
     backgroundColor: Colors.bgCard,
     borderRadius: 10,
@@ -200,6 +261,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     alignItems: "center",
     gap: 4,
+    marginTop: 12,
   },
   legalText: {
     fontSize: 12,
