@@ -302,6 +302,10 @@ export function useChatbotOnboarding() {
   // Processa a resposta do usuário
   const handleUserResponse = useCallback(
     (text: string, isQuickReply: boolean = false) => {
+      if (isCompleted || currentStep === "completed") {
+        return;
+      }
+
       const response = text.trim();
 
       // Identificar qual step deve processar esta resposta
@@ -395,7 +399,7 @@ export function useChatbotOnboarding() {
         }, 800);
       }
     },
-    [currentStep],
+    [currentStep, isCompleted],
   );
 
   return {

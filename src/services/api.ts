@@ -1,11 +1,14 @@
 import { Platform } from "react-native";
 
-// Em desenvolvimento, o simulador de iOS roda no localhost. O Android Emulator precisa de 10.0.2.2.
-// Para rodar em aparelho físico, substitua pelo seu IP de rede local (ex: 192.168.X.X).
-const BASE_URL = Platform.select({
-  android: "http://10.0.2.2:3001/api",
-  default: "http://localhost:3001/api",
-});
+// Preferência: EXPO_PUBLIC_API_URL no .env
+// Fallback por plataforma quando a variável não estiver definida.
+const BASE_URL =
+  process.env.EXPO_PUBLIC_API_URL ??
+  Platform.select({
+    android: "http://10.0.2.2:3001/api",
+    default: "http://localhost:3001/api",
+  });
+
 
 export class ApiError extends Error {
   status: number;

@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useState } from "react";
+import React, { useEffect, useCallback, useState, useRef } from "react";
 import {
   View,
   StyleSheet,
@@ -7,6 +7,7 @@ import {
   Text,
   Modal,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "../theme/colors";
@@ -37,113 +38,109 @@ export default function OnboardingChatScreen({ navigation }: Props) {
   const [saving, setSaving] = useState(false);
   const [progress, setProgress] = useState(0);
   const [statusText, setStatusText] = useState("Iniciando geração...");
+  const generationStartedRef = useRef(false);
+  const onboardingDataRef = useRef(onboardingData);
+  onboardingDataRef.current = onboardingData;
 
   useEffect(() => {
-    if (isCompleted && !saving) {
-      setSaving(true);
-      setProgress(0);
-      setStatusText("Iniciando geração...");
-
-      let currentProgress = 0;
-      let apiFinished = false;
-      let apiError: string | null = null;
-
-      // Inicia a animação de progresso simulado (passos rápidos e fluidos)
-      const interval = setInterval(() => {
-        currentProgress += 2;
-        if (currentProgress > 100) {
-          currentProgress = 100;
-        }
-        setProgress(currentProgress);
-
-        // Atualiza textos de status com base na porcentagem
-        if (currentProgress < 20) {
-          setStatusText("Analisando seus dados biométricos e IMC...");
-        } else if (currentProgress < 45) {
-          setStatusText("Estruturando plano de treinos personalizado...");
-        } else if (currentProgress < 70) {
-          setStatusText("Calculando metas de nutrição e macronutrientes...");
-        } else if (currentProgress < 90) {
-          setStatusText("Gerando recomendações de suplementação e sono...");
-        } else {
-          setStatusText("Finalizando e salvando protocolo no banco de dados...");
-        }
-
-        if (currentProgress === 100) {
-          clearInterval(interval);
-          
-          // Se a requisição de API já concluiu, executa o encerramento imediato
-          if (apiFinished) {
-            handleFinishedGeneration(apiError);
-          }
-        }
-      }, 50); // Leva em torno de 2.5 segundos para completar 100%
-
-      const handleFinishedGeneration = (error: string | null) => {
-        setSaving(false);
-        if (error) {
-          Alert.alert(
-            "Erro",
-            "Não foi possível salvar seu perfil: " + error,
-            [
-              {
-                text: "Fazer Login Novamente",
-                onPress: () => navigation.replace("Login"),
-              },
-            ]
-          );
-        } else {
-          Alert.alert(
-            "Perfil Completo! 🎉",
-            "Seu protocolo personalizado foi criado com sucesso.",
-            [
-              {
-                text: "Ir para Dashboard",
-                onPress: () => navigation.replace("MainTabs"),
-              },
-            ],
-            { cancelable: false }
-          );
-        }
-      };
-
-      const saveOnboarding = async () => {
-        try {
-          await api.post("/protocol/generate", {
-            objective: onboardingData.objective || "emagrecimento",
-            age: onboardingData.age || 26,
-            sex: onboardingData.sex || "masculino",
-            height: onboardingData.height || 180,
-            weight: onboardingData.weight || 90,
-            trainingFrequency: onboardingData.trainingFrequency || 3,
-            mealsCount: onboardingData.mealsCount || 4,
-            mealsSchedule: onboardingData.mealsSchedule || ["08:00", "12:00", "16:00", "20:00"],
-            usesSupplements: onboardingData.usesSupplements ?? false,
-          });
-          apiFinished = true;
-          // Se o progresso visual já chegou a 100%, finaliza agora
-          if (currentProgress === 100) {
-            handleFinishedGeneration(null);
-          }
-        } catch (err: any) {
-          apiFinished = true;
-          apiError = err.message || "Erro inesperado";
-          if (currentProgress === 100) {
-            handleFinishedGeneration(apiError);
-          }
-        }
-      };
-
-      saveOnboarding();
-
-      return () => {
-        clearInterval(interval);
-      };
+    if (!isCompleted || generationStartedRef.current) {
+      return;
     }
-  }, [isCompleted, navigation, onboardingData]);
+
+    generationStartedRef.current = true;
+    setSaving(true);
+    setProgress(0);
+    setStatusText("Iniciando geração...");
+
+    let currentProgress = 0;
+    let finished = false;
+    let interval: ReturnType<typeof setInterval> | null = null;
+
+    const finishGeneration = (error: string | null) => {
+      if (finished) return;
+      finished = true;
+      if (interval) clearInterval(interval);
+      setProgress(100);
+      setSaving(false);
+
+      if (error) {
+        generationStartedRef.current = false;
+        Alert.alert(
+          "Erro",
+          "Não foi possível salvar seu perfil: " + error,
+          [
+            { text: "Tentar novamente" },
+            {
+              text: "Ir para Login",
+              onPress: () => navigation.replace("Login"),
+            },
+          ],
+        );
+        return;
+      }
+
+      // Navega direto — Alert.alert no web não dispara o onPress de forma confiável
+      navigation.replace("MainTabs");
+      if (Platform.OS !== "web") {
+        Alert.alert(
+          "Perfil Completo! 🎉",
+          "Seu protocolo personalizado foi criado com sucesso.",
+        );
+      }
+    };
+
+    interval = setInterval(() => {
+      currentProgress = Math.min(currentProgress + 2, 95);
+      setProgress(currentProgress);
+
+      if (currentProgress < 20) {
+        setStatusText("Analisando seus dados biométricos e IMC...");
+      } else if (currentProgress < 45) {
+        setStatusText("Estruturando plano de treinos personalizado...");
+      } else if (currentProgress < 70) {
+        setStatusText("Calculando metas de nutrição e macronutrientes...");
+      } else {
+        setStatusText("Gerando recomendações de suplementação e sono...");
+      }
+    }, 50);
+
+    const data = onboardingDataRef.current;
+    const saveOnboarding = async () => {
+      try {
+        await api.post("/protocol/generate", {
+          objective: data.objective || "emagrecimento",
+          age: data.age || 26,
+          sex: data.sex || "masculino",
+          height: data.height || 180,
+          weight: data.weight || 90,
+          trainingFrequency: data.trainingFrequency || 3,
+          mealsCount: data.mealsCount || 4,
+          mealsSchedule: data.mealsSchedule || [
+            "08:00",
+            "12:00",
+            "16:00",
+            "20:00",
+          ],
+          usesSupplements: data.usesSupplements ?? false,
+        });
+        setStatusText("Finalizando e salvando protocolo no banco de dados...");
+        finishGeneration(null);
+      } catch (err: any) {
+        finishGeneration(err.message || "Erro inesperado");
+      }
+    };
+
+    saveOnboarding();
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isCompleted, navigation]);
 
   const onSend = useCallback(
     (text: string) => {
+      if (isCompleted || saving) return;
+
       const userMessage: ChatMessage = {
         _id: Date.now(),
         text,
@@ -156,17 +153,17 @@ export default function OnboardingChatScreen({ navigation }: Props) {
 
       setMessages((previousMessages) => [userMessage, ...previousMessages]);
 
-      // Processar resposta com delay para parecer mais natural
       setTimeout(() => {
-        handleUserResponse(text, false); // false = não é quick reply
+        handleUserResponse(text, false);
       }, 300);
     },
-    [handleUserResponse, setMessages],
+    [handleUserResponse, setMessages, isCompleted, saving],
   );
 
   const onQuickReply = useCallback(
     (reply: { title: string; value: string }) => {
-      // Criar mensagem do usuário com o título da resposta rápida (ex: "3-4x" ao invés de "4")
+      if (isCompleted || saving) return;
+
       const userMessage: ChatMessage = {
         _id: Date.now(),
         text: reply.title,
@@ -179,12 +176,11 @@ export default function OnboardingChatScreen({ navigation }: Props) {
 
       setMessages((previousMessages) => [userMessage, ...previousMessages]);
 
-      // Processar resposta usando o value para validação
       setTimeout(() => {
-        handleUserResponse(reply.value, true); // true = é quick reply (pular validação)
+        handleUserResponse(reply.value, true);
       }, 300);
     },
-    [handleUserResponse, setMessages],
+    [handleUserResponse, setMessages, isCompleted, saving],
   );
 
   return (
