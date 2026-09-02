@@ -24,7 +24,7 @@ interface AuthContextData {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
-  loginWithSocial: (provider: "google" | "apple", mockEmail: string) => Promise<SocialLoginResult>;
+  loginWithGoogle: (googleToken: string) => Promise<SocialLoginResult>;
   setPassword: (password: string, name?: string) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -131,19 +131,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const loginWithSocial = async (
-    provider: "google" | "apple",
-    mockEmail: string,
-  ): Promise<SocialLoginResult> => {
+  const loginWithGoogle = async (googleToken: string): Promise<SocialLoginResult> => {
     setIsLoading(true);
     try {
-      const path = provider === "google" ? "/auth/google" : "/auth/apple";
       const response = await api.post<{
         accessToken: string;
         user: User;
         needsProfileSetup?: boolean;
-      }>(path, {
-        idToken: `mock-${mockEmail}`,
+      }>("/auth/google", {
+        idToken: googleToken,
       });
 
       const { accessToken, user: loggedUser, needsProfileSetup } = response;
@@ -197,7 +193,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         login,
         register,
-        loginWithSocial,
+        loginWithGoogle,
         setPassword,
         logout,
       }}

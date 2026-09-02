@@ -19,7 +19,7 @@ import { GlobalStyles } from "../theme/styles";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation";
 import { useAuth } from "../context/AuthContext";
-import { api } from "../services/api";
+import { signInWithGoogle } from "../services/googleAuth";
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, "Login">;
@@ -33,7 +33,7 @@ export default function LoginScreen({ navigation }: Props) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const { login, register, loginWithSocial } = useAuth();
+  const { login, register, loginWithGoogle } = useAuth();
 
   const handleAuth = async () => {
     if (!email || !password || (isRegistering && !name)) {
@@ -60,23 +60,15 @@ export default function LoginScreen({ navigation }: Props) {
     }
   };
 
-  const handleSocial = async (provider: "google" | "apple") => {
+  const handleGoogle = async () => {
     setLoading(true);
     try {
-      // Se o desenvolvedor digitou um e-mail no campo diferente do padrão, usamos ele na simulação.
-      // Caso contrário, geramos um e-mail aleatório para forçar a criação de uma nova conta de testes.
-      const targetEmail =
-        email && email.includes("@") && email !== "itamar.ribeiro@email.com"
-          ? email
-          : `${provider}-user-${Math.floor(Math.random() * 10000)}@email.com`;
-
-      const { needsProfileSetup } = await loginWithSocial(provider, targetEmail);
+      const googleToken = await signInWithGoogle();
+      const { needsProfileSetup } = await loginWithGoogle(googleToken);
 
       if (needsProfileSetup) {
-        // Novo usuário social: precisa definir nome e senha antes de prosseguir
         navigation.replace("SocialSetup");
       } else {
-        // Usuário já existente: vai direto para o app
         navigation.replace("MainTabs");
       }
     } catch (err: any) {
@@ -219,29 +211,9 @@ export default function LoginScreen({ navigation }: Props) {
             <View style={styles.dividerLine} />
           </View>
 
-          {/* Social Buttons */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={GlobalStyles.btnOutline}
-            onPress={() => handleSocial("apple")}
-            disabled={loading}
-          >
-            <View style={GlobalStyles.row}>
-              <Ionicons
-                name="logo-apple"
-                size={18}
-                color={Colors.textPrimary}
-              />
-              <Text style={[GlobalStyles.btnOutlineText, { marginLeft: 8 }]}>
-                Apple
-              </Text>
-            </View>
-          </TouchableOpacity>
-
-          <View style={{ height: 12 }} />
-
-          <TouchableOpacity 
-            style={GlobalStyles.btnOutline}
-            onPress={() => handleSocial("google")}
+            onPress={handleGoogle}
             disabled={loading}
           >
             <View style={GlobalStyles.row}>
@@ -251,7 +223,7 @@ export default function LoginScreen({ navigation }: Props) {
                 color={Colors.textPrimary}
               />
               <Text style={[GlobalStyles.btnOutlineText, { marginLeft: 8 }]}>
-                Google
+                Continuar com Google
               </Text>
             </View>
           </TouchableOpacity>

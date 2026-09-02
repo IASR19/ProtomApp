@@ -60,7 +60,12 @@ export default function DisclaimerScreen({ navigation }: Props) {
         {/* CTA Button */}
         <TouchableOpacity
           style={styles.btn}
-          onPress={() => navigation.navigate("Login")}
+          onPress={() => {
+            const active = (globalThis as { document?: { activeElement?: { blur?: () => void } } })
+              .document?.activeElement;
+            active?.blur?.();
+            navigation.navigate("Login");
+          }}
           activeOpacity={0.85}
         >
           <LinearGradient
