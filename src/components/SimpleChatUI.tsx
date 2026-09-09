@@ -58,6 +58,17 @@ export default function SimpleChatUI({
     }
   };
 
+  const handleKeyPress = (e: any) => {
+    if (
+      Platform.OS === "web" &&
+      e.nativeEvent.key === "Enter" &&
+      !e.nativeEvent.shiftKey
+    ) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
   const renderMessage = (message: ChatMessage) => {
     const isUser = message.user._id === currentUserId;
 
@@ -127,6 +138,7 @@ export default function SimpleChatUI({
             maxLength={500}
             returnKeyType="send"
             onSubmitEditing={handleSend}
+            onKeyPress={handleKeyPress}
             blurOnSubmit={false}
           />
           <TouchableOpacity
