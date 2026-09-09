@@ -11,6 +11,7 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -92,7 +93,11 @@ export default function LoginScreen({ navigation }: Props) {
           {/* Logo */}
           <View style={styles.logoSection}>
             <View style={styles.logoIcon}>
-              <Ionicons name="heart" size={32} color={Colors.teal} />
+              <Image
+                source={require("../../assets/logo.png")}
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
             </View>
             <Text style={styles.appName}>ProtomApp</Text>
           </View>
@@ -268,6 +273,10 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: Colors.teal,
     marginBottom: 10,
+  },
+  logoImage: {
+    width: 36,
+    height: 36,
   },
   appName: {
     fontSize: 18,

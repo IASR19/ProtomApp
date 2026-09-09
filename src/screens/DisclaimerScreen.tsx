@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   SafeAreaView,
+  Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -28,7 +29,11 @@ export default function DisclaimerScreen({ navigation }: Props) {
         {/* Logo */}
         <View style={styles.logoSection}>
           <View style={styles.logoIcon}>
-            <Ionicons name="heart" size={40} color={Colors.teal} />
+            <Image
+              source={require("../../assets/logo.png")}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
           </View>
           <Text style={styles.appName}>ProtomApp</Text>
         </View>
@@ -104,6 +109,10 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: Colors.teal,
     marginBottom: 12,
+  },
+  logoImage: {
+    width: 44,
+    height: 44,
   },
   appName: {
     fontSize: 22,

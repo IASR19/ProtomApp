@@ -7,6 +7,7 @@ import {
   SafeAreaView,
   TouchableOpacity,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -139,13 +140,20 @@ export default function DashboardScreen({ navigation }: Props) {
               <Text style={styles.subGreeting}>{prof.objective}</Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.bellBtn}>
-            <Ionicons
-              name="notifications-outline"
-              size={22}
-              color={Colors.textSecondary}
+          <View style={GlobalStyles.row}>
+            <Image
+              source={require("../../assets/logo.png")}
+              style={styles.headerLogo}
+              resizeMode="contain"
             />
-          </TouchableOpacity>
+            <TouchableOpacity style={styles.bellBtn}>
+              <Ionicons
+                name="notifications-outline"
+                size={22}
+                color={Colors.textSecondary}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Score Metabólico Expandido */}
@@ -298,6 +306,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.teal,
     fontWeight: "500",
+  },
+  headerLogo: {
+    width: 28,
+    height: 28,
+    marginRight: 12,
   },
   bellBtn: {
     width: 40,
