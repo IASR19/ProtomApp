@@ -7,7 +7,7 @@ import { AuthProvider } from "./src/context/AuthContext";
 export default function App() {
   return (
     <AuthProvider>
-      <NavigationContainer>
+      <NavigationContainer documentTitle={{ formatter: () => "ProtomApp" }}>
         <StatusBar style="light" />
         <AppNavigator />
       </NavigationContainer>

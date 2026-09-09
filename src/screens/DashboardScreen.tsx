@@ -141,11 +141,13 @@ export default function DashboardScreen({ navigation }: Props) {
             </View>
           </View>
           <View style={GlobalStyles.row}>
-            <Image
-              source={require("../../assets/logo.png")}
-              style={styles.headerLogo}
-              resizeMode="contain"
-            />
+            <View style={styles.headerLogoBadge}>
+              <Image
+                source={require("../../assets/logo.png")}
+                style={styles.headerLogo}
+                resizeMode="contain"
+              />
+            </View>
             <TouchableOpacity style={styles.bellBtn}>
               <Ionicons
                 name="notifications-outline"
@@ -307,10 +309,18 @@ const styles = StyleSheet.create({
     color: Colors.teal,
     fontWeight: "500",
   },
-  headerLogo: {
-    width: 28,
-    height: 28,
+  headerLogoBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.white,
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 12,
+  },
+  headerLogo: {
+    width: 22,
+    height: 22,
   },
   bellBtn: {
     width: 40,

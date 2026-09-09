@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: Colors.bgCard,
+    backgroundColor: Colors.white,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
@@ -275,8 +275,8 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   logoImage: {
-    width: 36,
-    height: 36,
+    width: 40,
+    height: 40,
   },
   appName: {
     fontSize: 18,
