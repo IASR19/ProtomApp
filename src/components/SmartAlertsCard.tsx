@@ -11,12 +11,12 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../theme/colors";
 
-export type AlertLevel = "critical" | "warning" | "normal";
+export type AlertLevel = "critical" | "warning" | "normal" | "success" | "info";
 
 export interface Alert {
   id: string;
   level: AlertLevel;
-  category: "exam" | "adherence" | "weight" | "wearable" | "medication";
+  category: "exam" | "adherence" | "weight" | "wellness" | "medication";
   title: string;
   description: string;
   metric?: string;
@@ -49,6 +49,18 @@ const AlertLevelBadge = ({ level }: { level: AlertLevel }) => {
       icon: "checkmark-circle" as const,
       label: "NORMAL",
     },
+    success: {
+      color: Colors.success,
+      bgColor: "rgba(16,185,129,0.12)",
+      icon: "checkmark-circle" as const,
+      label: "OK",
+    },
+    info: {
+      color: Colors.blue,
+      bgColor: "rgba(59,130,246,0.12)",
+      icon: "information-circle" as const,
+      label: "INFO",
+    },
   };
 
   const { color, bgColor, icon, label } = config[level];
@@ -68,7 +80,7 @@ const CategoryIcon = ({ category }: { category: Alert["category"] }) => {
     exam: "document-text",
     adherence: "checkmark-circle",
     weight: "scale",
-    wearable: "watch",
+    wellness: "moon",
     medication: "medkit",
   };
 

@@ -94,7 +94,7 @@ export default function DashboardScreen({ navigation }: Props) {
     nutritionGoal: 2200,
     nextExamDays: 12,
     weightProgress: 0,
-    metabolicScoreDetails: { protocolAdherence: 72, wearableData: { sleep: 6.2, recovery: 85, avgHeartRate: 68 }, weightProgress: 45, examsStatus: 90 },
+    metabolicScoreDetails: { protocolAdherence: 72, wellness: { hasCheckin: false, sleepHours: 0, sleepScore: 0, recoveryScore: 0 }, weightProgress: 45, examsStatus: 90 },
     alerts: [],
   };
 
@@ -152,6 +152,7 @@ export default function DashboardScreen({ navigation }: Props) {
         <MetabolicScoreCard
           score={dash.metabolicScore}
           details={dash.metabolicScoreDetails}
+          onCheckinPress={() => (navigation as any).navigate("DailyCheckin")}
         />
 
         {/* 4 Metric Cards */}

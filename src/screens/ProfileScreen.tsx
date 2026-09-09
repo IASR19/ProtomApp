@@ -130,7 +130,7 @@ export default function ProfileScreen({ navigation }: Props) {
           <MenuItem
             icon="logo-apple"
             label="Dispositivos (IoT)"
-            value="Apple Watch Conectado"
+            value="Nenhum conectado"
           />
           <MenuItem
             icon="notifications-outline"

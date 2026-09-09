@@ -1,14 +1,17 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../theme/colors";
 
 interface MetabolicScoreDetails {
   protocolAdherence: number; // 0-100
-  wearableData: {
-    sleep: number; // horas
-    recovery: number; // 0-100
-    avgHeartRate: number; // BPM
+  // Sono e recuperação vêm do check-in diário autorreportado pelo usuário
+  // (não há wearable conectado ainda — ver docs/wearable-data-strategy.md).
+  wellness: {
+    hasCheckin: boolean;
+    sleepHours: number; // horas
+    sleepScore: number; // 0-100
+    recoveryScore: number; // 0-100
   };
   weightProgress: number; // 0-100 (relativo à meta)
   examsStatus: number; // 0-100 (baseado em exames dentro do padrão)
@@ -66,14 +69,30 @@ const ScoreComponentBar = ({
   );
 };
 
+const CheckinPrompt = ({ onPress }: { onPress?: () => void }) => (
+  <TouchableOpacity
+    style={styles.checkinPrompt}
+    onPress={onPress}
+    disabled={!onPress}
+    activeOpacity={0.7}
+  >
+    <Ionicons name="add-circle-outline" size={18} color={Colors.teal} />
+    <Text style={styles.checkinPromptText}>
+      Sem check-in hoje — toque para registrar sono e recuperação
+    </Text>
+  </TouchableOpacity>
+);
+
 interface MetabolicScoreCardProps {
   score: number;
   details: MetabolicScoreDetails;
+  onCheckinPress?: () => void;
 }
 
 export const MetabolicScoreCard: React.FC<MetabolicScoreCardProps> = ({
   score,
   details,
+  onCheckinPress,
 }) => {
   const scoreColor =
     score >= 80 ? Colors.success : score >= 60 ? Colors.teal : Colors.warning;
@@ -108,21 +127,27 @@ export const MetabolicScoreCard: React.FC<MetabolicScoreCardProps> = ({
         color={Colors.teal}
       />
 
-      <ScoreComponentBar
-        icon="moon-outline"
-        label="Qualidade do Sono"
-        value={details.wearableData.sleep}
-        maxValue={10}
-        unit="h"
-        color={Colors.blue}
-      />
+      {details.wellness.hasCheckin ? (
+        <>
+          <ScoreComponentBar
+            icon="moon-outline"
+            label="Sono (check-in)"
+            value={details.wellness.sleepHours}
+            maxValue={10}
+            unit="h"
+            color={Colors.blue}
+          />
 
-      <ScoreComponentBar
-        icon="battery-charging-outline"
-        label="Recuperação Muscular"
-        value={details.wearableData.recovery}
-        color={Colors.success}
-      />
+          <ScoreComponentBar
+            icon="battery-charging-outline"
+            label="Recuperação (autoavaliação)"
+            value={details.wellness.recoveryScore}
+            color={Colors.success}
+          />
+        </>
+      ) : (
+        <CheckinPrompt onPress={onCheckinPress} />
+      )}
 
       <ScoreComponentBar
         icon="scale-outline"
@@ -145,7 +170,8 @@ export const MetabolicScoreCard: React.FC<MetabolicScoreCardProps> = ({
           color={Colors.textMuted}
         />
         <Text style={styles.footerText}>
-          Atualizado em tempo real conforme você completa tarefas
+          Aderência e peso são calculados a partir do seu uso do app; sono e
+          recuperação vêm do seu check-in diário
         </Text>
       </View>
     </View>
@@ -246,30 +272,22 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     flex: 1,
   },
+  checkinPrompt: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: Colors.bgPrimary,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderStyle: "dashed",
+    padding: 12,
+    marginBottom: 16,
+  },
+  checkinPromptText: {
+    fontSize: 12,
+    color: Colors.teal,
+    flex: 1,
+    fontWeight: "500",
+  },
 });
-
-// Função para calcular o score metabólico baseado nos componentes
-export const calculateMetabolicScore = (
-  details: MetabolicScoreDetails,
-): number => {
-  // Pesos dos componentes (totalizam 100%)
-  const weights = {
-    protocolAdherence: 0.35, // 35%
-    sleep: 0.2, // 20%
-    recovery: 0.2, // 20%
-    weightProgress: 0.15, // 15%
-    examsStatus: 0.1, // 10%
-  };
-
-  // Normalizar sono para escala 0-100
-  const sleepScore = Math.min((details.wearableData.sleep / 8) * 100, 100);
-
-  const totalScore =
-    details.protocolAdherence * weights.protocolAdherence +
-    sleepScore * weights.sleep +
-    details.wearableData.recovery * weights.recovery +
-    details.weightProgress * weights.weightProgress +
-    details.examsStatus * weights.examsStatus;
-
-  return Math.round(totalScore);
-};

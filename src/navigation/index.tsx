@@ -22,6 +22,7 @@ import PrescriptionsScreen from "../screens/PrescriptionsScreen";
 import PartnersScreen from "../screens/PartnersScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import SocialSetupScreen from "../screens/SocialSetupScreen";
+import DailyCheckinScreen from "../screens/DailyCheckinScreen";
 
 export type RootStackParamList = {
   Disclaimer: undefined;
@@ -39,6 +40,7 @@ export type RootStackParamList = {
   BodyScan: undefined;
   Prescriptions: undefined;
   Partners: undefined;
+  DailyCheckin: undefined;
 };
 
 export type MainTabParamList = {
@@ -124,6 +126,7 @@ export function AppNavigator() {
       <Stack.Screen name="BodyScan" component={BodyScanScreen} />
       <Stack.Screen name="Prescriptions" component={PrescriptionsScreen} />
       <Stack.Screen name="Partners" component={PartnersScreen} />
+      <Stack.Screen name="DailyCheckin" component={DailyCheckinScreen} />
     </Stack.Navigator>
   );
 }

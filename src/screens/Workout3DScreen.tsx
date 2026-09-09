@@ -30,7 +30,6 @@ interface WorkoutData {
   calories: number;
   cardio?: string;
   exercises: { id: string; name: string; sets: number; reps: number; weight: number }[];
-  bpm?: number;
   caloriesBurned?: number;
   progress?: number;
 }
@@ -138,7 +137,6 @@ export default function Workout3DScreen({ navigation }: Props) {
   const totalSeries = firstExercise?.sets ?? 4;
   const reps = firstExercise?.reps ?? 12;
   const weight = firstExercise?.weight ?? 0;
-  const bpm = workout?.bpm ?? 142;
   const caloriesBurned = workout?.caloriesBurned ?? workout?.calories ?? 0;
   const progress = workout?.progress ?? 0.65;
 
@@ -247,20 +245,6 @@ export default function Workout3DScreen({ navigation }: Props) {
         <>
           {/* Stats HUD */}
           <View style={styles.hudRow}>
-            <View style={[styles.hudCard, { borderColor: Colors.danger }]}>
-              <View style={GlobalStyles.row}>
-                <Text style={[styles.hudValue, { color: Colors.danger }]}>
-                  {bpm}
-                </Text>
-                <Ionicons
-                  name="heart"
-                  size={14}
-                  color={Colors.danger}
-                  style={{ marginLeft: 4 }}
-                />
-              </View>
-              <Text style={styles.hudLabel}>BPM (APPLE{"\n"}WATCH)</Text>
-            </View>
             <View style={[styles.hudCard, { borderColor: Colors.warning }]}>
               <Text style={[styles.hudValue, { color: Colors.warning }]}>
                 {caloriesBurned}

@@ -449,12 +449,12 @@ export default function ProtocolScreen({ navigation }: any) {
         >
           {[
             {
-              label: "RECUPERAÇÃO",
+              label: "RECUPERAÇÃO (META)",
               value: `${protocol.recovery}%`,
               color: Colors.teal,
             },
             {
-              label: "SONO (OURA)",
+              label: "SONO (META)",
               value: protocol.sleep || "N/A",
               color: Colors.blue,
             },
