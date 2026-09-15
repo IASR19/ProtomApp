@@ -6,6 +6,7 @@ import type {
   Sex,
 } from "../types/onboarding";
 import type { ChatMessage } from "../components/SimpleChatUI";
+import { api } from "../services/api";
 
 const BOT_USER = {
   _id: 2,
@@ -18,6 +19,26 @@ const USER = {
   name: "Você",
 };
 
+// Deduz em qual etapa da árvore fixa retomar, a partir dos campos já coletados
+// (usado quando a conversa por IA falha e cai no fallback determinístico).
+function inferStepFromData(data: OnboardingData): OnboardingStep {
+  if (!data.objective) return "objective";
+  if (data.age === undefined) return "age";
+  if (!data.sex) return "sex";
+  if (data.height === undefined) return "height";
+  if (data.weight === undefined) return "weight";
+  if (data.goalWeight === undefined) return "goal_weight";
+  if (data.trainingFrequency === undefined) return "training_frequency";
+  if (data.mealsCount === undefined) return "meals_count";
+  if (!data.mealsSchedule) return "meals_schedule";
+  if (data.objective === "hipertrofia" && data.usesSupplements === undefined) return "supplements";
+  return "completed";
+}
+
+function isOnboardingComplete(data: OnboardingData): boolean {
+  return inferStepFromData(data) === "completed";
+}
+
 export function useChatbotOnboarding() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [currentStep, setCurrentStep] = useState<OnboardingStep>("welcome");
@@ -26,6 +47,9 @@ export function useChatbotOnboarding() {
 
   // Usar ref para manter dados sincronizados
   const dataRef = useRef<OnboardingData>({});
+  // Enquanto true, tenta conduzir a conversa via IA (Groq); ao primeiro fallback
+  // sinalizado pelo backend, vira false e a árvore fixa assume o resto da conversa.
+  const useAiChatRef = useRef(true);
 
   // Inicializa o chat
   const initializeChat = useCallback(() => {
@@ -73,6 +97,16 @@ export function useChatbotOnboarding() {
           return {
             valid: false,
             error: "Por favor, digite um peso válido entre 30 e 300 kg.",
+          };
+        }
+        return { valid: true };
+
+      case "goal_weight":
+        const goalWeight = parseFloat(text);
+        if (isNaN(goalWeight) || goalWeight < 30 || goalWeight > 300) {
+          return {
+            valid: false,
+            error: "Por favor, digite uma meta de peso válida entre 30 e 300 kg.",
           };
         }
         return { valid: true };
@@ -170,6 +204,14 @@ export function useChatbotOnboarding() {
         return {
           _id: Date.now(),
           text: "E qual é o seu peso atual em quilos? (Ex: 80)",
+          createdAt: new Date(),
+          user: BOT_USER,
+        };
+
+      case "goal_weight":
+        return {
+          _id: Date.now(),
+          text: "E qual é a sua meta de peso em quilos? (Ex: 75)",
           createdAt: new Date(),
           user: BOT_USER,
         };
@@ -285,6 +327,8 @@ export function useChatbotOnboarding() {
       case "height":
         return "weight";
       case "weight":
+        return "goal_weight";
+      case "goal_weight":
         return "training_frequency";
       case "training_frequency":
         return "meals_count";
@@ -299,8 +343,62 @@ export function useChatbotOnboarding() {
     }
   };
 
-  // Processa a resposta do usuário
-  const handleUserResponse = useCallback(
+  // Envia a mensagem ao backend (Groq) e trata a resposta; retorna false se caiu em fallback.
+  const tryAiResponse = useCallback(
+    async (text: string): Promise<boolean> => {
+      // messages é armazenado do mais novo para o mais antigo, e já inclui a mensagem
+      // atual do usuário (adicionada pela tela antes de chamar handleUserResponse) —
+      // por isso ela é excluída daqui e enviada separadamente como `message`.
+      const historyForApi = messages
+        .slice(1)
+        .slice()
+        .reverse()
+        .map((m) => ({ role: m.user._id === 1 ? ("user" as const) : ("bot" as const), text: m.text }));
+
+      try {
+        const res = await api.post<{
+          reply: string;
+          updatedFields: Partial<OnboardingData>;
+          isComplete: boolean;
+          usedFallback: boolean;
+        }>("/chatbot/onboarding-message", {
+          message: text,
+          collectedFields: dataRef.current,
+          history: historyForApi,
+        });
+
+        if (res.usedFallback) {
+          return false;
+        }
+
+        const updatedData = { ...dataRef.current, ...res.updatedFields };
+        dataRef.current = updatedData;
+        setOnboardingData(updatedData);
+
+        const botMessage: ChatMessage = {
+          _id: Date.now(),
+          text: res.reply,
+          createdAt: new Date(),
+          user: BOT_USER,
+        };
+        setMessages((prev) => [botMessage, ...prev]);
+
+        if (res.isComplete && isOnboardingComplete(updatedData)) {
+          setCurrentStep("completed");
+          setTimeout(() => setIsCompleted(true), 1200);
+        }
+
+        return true;
+      } catch (err) {
+        console.warn("Falha ao conversar com o onboarding via IA:", (err as Error).message);
+        return false;
+      }
+    },
+    [messages],
+  );
+
+  // Processa a resposta do usuário via árvore fixa (fallback determinístico)
+  const handleUserResponseScripted = useCallback(
     (text: string, isQuickReply: boolean = false) => {
       if (isCompleted || currentStep === "completed") {
         return;
@@ -356,6 +454,9 @@ export function useChatbotOnboarding() {
             );
           }
           break;
+        case "goal_weight":
+          updatedData.goalWeight = parseFloat(response);
+          break;
         case "training_frequency":
           updatedData.trainingFrequency = parseInt(response);
           break;
@@ -400,6 +501,35 @@ export function useChatbotOnboarding() {
       }
     },
     [currentStep, isCompleted],
+  );
+
+  // Ponto de entrada usado pela tela: tenta a conversa via IA primeiro; se o backend
+  // sinalizar fallback (Groq indisponível ou resposta inválida), passa a usar a árvore
+  // fixa a partir do ponto já preenchido — de forma explícita, não silenciosa.
+  const handleUserResponse = useCallback(
+    (text: string, isQuickReply: boolean = false) => {
+      if (isCompleted || currentStep === "completed") {
+        return;
+      }
+
+      if (useAiChatRef.current) {
+        tryAiResponse(text).then((handled) => {
+          if (handled) return;
+
+          useAiChatRef.current = false;
+          const resumeStep = inferStepFromData(dataRef.current);
+          setCurrentStep(resumeStep);
+          const question = getNextQuestion(resumeStep, dataRef.current);
+          if (question) {
+            setMessages((prev) => [question, ...prev]);
+          }
+        });
+        return;
+      }
+
+      handleUserResponseScripted(text, isQuickReply);
+    },
+    [currentStep, isCompleted, tryAiResponse, handleUserResponseScripted],
   );
 
   return {

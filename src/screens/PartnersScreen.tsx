@@ -28,7 +28,6 @@ interface PartnerItem {
 }
 
 interface PartnersData {
-  savings: number;
   tabs: string[];
   supplements: PartnerItem[];
   pharmacies: PartnerItem[];
@@ -89,18 +88,6 @@ export default function PartnersScreen({ navigation }: Props) {
           />
         ) : (
           <>
-            {/* Savings Banner */}
-            <View style={styles.savingsBanner}>
-              <View>
-                <Text style={styles.savingsLabel}>ECONOMIA ACUMULADA</Text>
-                <Text style={styles.savingsValue}>
-                  R${" "}
-                  {(data?.savings ?? 0).toFixed(2).replace(".", ",")}
-                </Text>
-              </View>
-              <Ionicons name="wallet" size={36} color={Colors.teal} />
-            </View>
-
             {/* Tabs */}
             <View style={styles.tabs}>
               {(data?.tabs ?? ["Suplementos", "Farmácias", "Exames"]).map(
@@ -185,29 +172,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: Colors.textPrimary,
     letterSpacing: 0.5,
-  },
-  savingsBanner: {
-    backgroundColor: Colors.bgCard,
-    borderRadius: 14,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: Colors.teal,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  savingsLabel: {
-    fontSize: 11,
-    color: Colors.teal,
-    fontWeight: "600",
-    letterSpacing: 1,
-    marginBottom: 4,
-  },
-  savingsValue: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: Colors.textPrimary,
   },
   tabs: {
     flexDirection: "row",

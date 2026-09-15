@@ -80,6 +80,7 @@ const formatDisplayName = (name: string) => {
 
 export default function WorkoutIndicationScreen({ navigation }: Props) {
   const [workout, setWorkout] = useState<any>(null);
+  const [hasData, setHasData] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedExercise, setSelectedExercise] = useState<any>(null);
   const [videoModalVisible, setVideoModalVisible] = useState(false);
@@ -88,8 +89,9 @@ export default function WorkoutIndicationScreen({ navigation }: Props) {
   useEffect(() => {
     const fetchWorkout = async () => {
       try {
-        const data = await api.get<any>("/workout/today");
-        setWorkout(data);
+        const res = await api.get<{ hasData: boolean; workout: any }>("/workout/today");
+        setHasData(res.hasData);
+        setWorkout(res.workout);
       } catch (err: any) {
         console.warn("Erro ao buscar treino:", err.message);
       } finally {
@@ -119,14 +121,27 @@ export default function WorkoutIndicationScreen({ navigation }: Props) {
     );
   }
 
-  const w = workout || {
-    title: "Treino Livre",
-    description: "Foco em gasto calórico diário",
-    duration: 45,
-    calories: 300,
-    exercises: [],
-    cardio: "Cardio: 30min Caminhada Livre",
-  };
+  if (!hasData) {
+    return (
+      <SafeAreaView style={GlobalStyles.safeArea}>
+        <View style={[styles.topBar, { paddingHorizontal: 20, marginTop: 16 }]}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={22} color={Colors.textSecondary} />
+          </TouchableOpacity>
+          <Text style={styles.screenTitle}>Treino do Dia</Text>
+          <View style={{ width: 22 }} />
+        </View>
+        <View style={styles.emptyState}>
+          <Ionicons name="barbell-outline" size={40} color={Colors.textMuted} />
+          <Text style={styles.emptyText}>
+            Nenhum treino definido ainda. Seu protocolo ainda não gerou um treino do dia.
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const w = workout;
 
   return (
     <SafeAreaView style={GlobalStyles.safeArea}>
@@ -306,6 +321,17 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "700",
     color: Colors.textPrimary,
+  },
+  emptyState: {
+    alignItems: "center",
+    paddingHorizontal: 32,
+    paddingVertical: 60,
+    gap: 12,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: Colors.textMuted,
+    textAlign: "center",
   },
   workoutHeader: {
     borderRadius: 14,

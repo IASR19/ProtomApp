@@ -8,8 +8,6 @@ import { Colors } from "../theme/colors";
 import DisclaimerScreen from "../screens/DisclaimerScreen";
 import LoginScreen from "../screens/LoginScreen";
 import OnboardingChatScreen from "../screens/OnboardingChatScreen";
-import ObjectiveScreen from "../screens/ObjectiveScreen";
-import BiometricsScreen from "../screens/BiometricsScreen";
 import DashboardScreen from "../screens/DashboardScreen";
 import ProtocolScreen from "../screens/ProtocolScreen";
 import ExamsUploadScreen from "../screens/ExamsUploadScreen";
@@ -23,14 +21,15 @@ import PartnersScreen from "../screens/PartnersScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import SocialSetupScreen from "../screens/SocialSetupScreen";
 import DailyCheckinScreen from "../screens/DailyCheckinScreen";
+import MedicalTeamScreen from "../screens/MedicalTeamScreen";
+import NotificationPreferencesScreen from "../screens/NotificationPreferencesScreen";
+import PlanManagementScreen from "../screens/PlanManagementScreen";
 
 export type RootStackParamList = {
   Disclaimer: undefined;
   Login: undefined;
   SocialSetup: undefined;
   OnboardingChat: undefined;
-  Objective: undefined;
-  Biometrics: undefined;
   MainTabs: undefined;
   ExamsUpload: undefined;
   ExamsEvolution: undefined;
@@ -41,6 +40,9 @@ export type RootStackParamList = {
   Prescriptions: undefined;
   Partners: undefined;
   DailyCheckin: undefined;
+  MedicalTeam: undefined;
+  NotificationPreferences: undefined;
+  PlanManagement: undefined;
 };
 
 export type MainTabParamList = {
@@ -112,8 +114,6 @@ export function AppNavigator() {
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="SocialSetup" component={SocialSetupScreen} />
       <Stack.Screen name="OnboardingChat" component={OnboardingChatScreen} />
-      <Stack.Screen name="Objective" component={ObjectiveScreen} />
-      <Stack.Screen name="Biometrics" component={BiometricsScreen} />
       <Stack.Screen name="MainTabs" component={MainTabs} />
       <Stack.Screen name="ExamsUpload" component={ExamsUploadScreen} />
       <Stack.Screen name="ExamsEvolution" component={ExamsEvolutionScreen} />
@@ -127,6 +127,12 @@ export function AppNavigator() {
       <Stack.Screen name="Prescriptions" component={PrescriptionsScreen} />
       <Stack.Screen name="Partners" component={PartnersScreen} />
       <Stack.Screen name="DailyCheckin" component={DailyCheckinScreen} />
+      <Stack.Screen name="MedicalTeam" component={MedicalTeamScreen} />
+      <Stack.Screen
+        name="NotificationPreferences"
+        component={NotificationPreferencesScreen}
+      />
+      <Stack.Screen name="PlanManagement" component={PlanManagementScreen} />
     </Stack.Navigator>
   );
 }

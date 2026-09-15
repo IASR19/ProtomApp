@@ -14,7 +14,7 @@ interface MetabolicScoreDetails {
     recoveryScore: number; // 0-100
   };
   weightProgress: number; // 0-100 (relativo à meta)
-  examsStatus: number; // 0-100 (baseado em exames dentro do padrão)
+  examsStatus: number | null; // 0-100 (baseado em exames dentro do padrão); null = sem exames registrados
 }
 
 interface ScoreComponentBarProps {
@@ -156,12 +156,21 @@ export const MetabolicScoreCard: React.FC<MetabolicScoreCardProps> = ({
         color={Colors.warning}
       />
 
-      <ScoreComponentBar
-        icon="document-text-outline"
-        label="Status dos Exames"
-        value={details.examsStatus}
-        color={Colors.danger}
-      />
+      {details.examsStatus != null ? (
+        <ScoreComponentBar
+          icon="document-text-outline"
+          label="Status dos Exames"
+          value={details.examsStatus}
+          color={Colors.danger}
+        />
+      ) : (
+        <View style={styles.noExamsRow}>
+          <Ionicons name="document-text-outline" size={16} color={Colors.textMuted} />
+          <Text style={styles.noExamsText}>
+            Status dos Exames: nenhum exame registrado ainda
+          </Text>
+        </View>
+      )}
 
       <View style={styles.footer}>
         <Ionicons
@@ -260,6 +269,17 @@ const styles = StyleSheet.create({
   progressBarFill: {
     height: "100%",
     borderRadius: 3,
+  },
+  noExamsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 12,
+  },
+  noExamsText: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    flex: 1,
   },
   footer: {
     flexDirection: "row",

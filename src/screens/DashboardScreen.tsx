@@ -93,9 +93,9 @@ export default function DashboardScreen({ navigation }: Props) {
     trainingStatus: "Pendente Hoje",
     nutritionKcal: 1800,
     nutritionGoal: 2200,
-    nextExamDays: 12,
+    nextExamDays: null as number | null,
     weightProgress: 0,
-    metabolicScoreDetails: { protocolAdherence: 72, wellness: { hasCheckin: false, sleepHours: 0, sleepScore: 0, recoveryScore: 0 }, weightProgress: 45, examsStatus: 90 },
+    metabolicScoreDetails: { protocolAdherence: 72, wellness: { hasCheckin: false, sleepHours: 0, sleepScore: 0, recoveryScore: 0 }, weightProgress: 45, examsStatus: null as number | null },
     alerts: [],
   };
 
@@ -103,7 +103,6 @@ export default function DashboardScreen({ navigation }: Props) {
     name: "Usuário",
     objective: "Emagrecimento",
     weight: 133,
-    goalWeight: 110,
   };
 
   const initials = prof.name
@@ -115,11 +114,12 @@ export default function DashboardScreen({ navigation }: Props) {
 
   // Calculate weight bar width
   const baseWeight = Number(prof.initialWeight) || Number(prof.weight) || 133;
-  const targetWeight = Number(prof.goalWeight) || 110;
+  const targetWeight = prof.goalWeight != null ? Number(prof.goalWeight) : null;
   const currentWeight = Number(prof.weight) || 133;
-  const weightBarPct = baseWeight - targetWeight > 0 
-    ? Math.min(Math.max(0, ((baseWeight - currentWeight) / (baseWeight - targetWeight)) * 100), 100)
-    : 100;
+  const weightBarPct =
+    targetWeight != null && baseWeight - targetWeight > 0
+      ? Math.min(Math.max(0, ((baseWeight - currentWeight) / (baseWeight - targetWeight)) * 100), 100)
+      : 0;
 
   return (
     <SafeAreaView style={GlobalStyles.safeArea}>
@@ -190,7 +190,7 @@ export default function DashboardScreen({ navigation }: Props) {
             icon="document-text-outline"
             iconColor={Colors.blue}
             label="Próximo Exame"
-            value={`em ${dash.nextExamDays} dias`}
+            value={dash.nextExamDays != null ? `em ${dash.nextExamDays} dias` : "Não agendado"}
           />
         </View>
 
@@ -207,7 +207,7 @@ export default function DashboardScreen({ navigation }: Props) {
           <View style={GlobalStyles.spaceBetween}>
             <Text style={styles.weightCurrent}>{currentWeight} kg</Text>
             <Text style={styles.weightGoal}>
-              Meta: {targetWeight} kg
+              {targetWeight != null ? `Meta: ${targetWeight} kg` : "Meta não definida"}
             </Text>
           </View>
           {/* Progress bar */}

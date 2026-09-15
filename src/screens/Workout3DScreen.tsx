@@ -150,8 +150,8 @@ export default function Workout3DScreen({ navigation }: Props) {
 
   useEffect(() => {
     api
-      .get<WorkoutData>("/workout/today")
-      .then((data) => setWorkout(data))
+      .get<{ hasData: boolean; workout: WorkoutData | null }>("/workout/today")
+      .then((res) => setWorkout(res.workout))
       .catch((err) => console.warn("Erro ao carregar treino:", err.message))
       .finally(() => setLoading(false));
   }, []);

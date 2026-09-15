@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -57,9 +57,22 @@ function MenuItem({
 }
 
 import { useAuth } from "../context/AuthContext";
+import { api } from "../services/api";
 
 export default function ProfileScreen({ navigation }: Props) {
   const { user, logout } = useAuth();
+  const [planRenewalDate, setPlanRenewalDate] = useState<string | null>(null);
+  const [planCancelled, setPlanCancelled] = useState(false);
+
+  useEffect(() => {
+    api
+      .get<{ planRenewalDate: string | null; planCancelled: boolean }>("/users/plan")
+      .then((res) => {
+        setPlanRenewalDate(res.planRenewalDate);
+        setPlanCancelled(res.planCancelled);
+      })
+      .catch((err) => console.warn("Erro ao buscar plano:", err.message));
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -112,9 +125,16 @@ export default function ProfileScreen({ navigation }: Props) {
           </View>
           <View style={GlobalStyles.row}>
             <Text style={styles.planRenewal}>
-              Renova em 15/05/2027
+              {planCancelled
+                ? "Renovação cancelada"
+                : planRenewalDate
+                  ? `Renova em ${new Date(planRenewalDate).toLocaleDateString("pt-BR")}`
+                  : "Renovação não definida"}
             </Text>
-            <TouchableOpacity style={styles.manageBtn}>
+            <TouchableOpacity
+              style={styles.manageBtn}
+              onPress={() => (navigation as any).navigate("PlanManagement")}
+            >
               <Text style={styles.manageBtnText}>Gerenciar</Text>
             </TouchableOpacity>
           </View>
@@ -125,7 +145,7 @@ export default function ProfileScreen({ navigation }: Props) {
           <MenuItem
             icon="people-outline"
             label="Equipe Médica"
-            onPress={() => {}}
+            onPress={() => (navigation as any).navigate("MedicalTeam")}
           />
           <MenuItem
             icon="logo-apple"
@@ -135,7 +155,7 @@ export default function ProfileScreen({ navigation }: Props) {
           <MenuItem
             icon="notifications-outline"
             label="Notificações"
-            onPress={() => {}}
+            onPress={() => (navigation as any).navigate("NotificationPreferences")}
           />
           <MenuItem
             icon="options-outline"

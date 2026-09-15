@@ -5,6 +5,7 @@ export type OnboardingStep =
   | "sex"
   | "height"
   | "weight"
+  | "goal_weight"
   | "training_frequency"
   | "meals_count"
   | "meals_schedule"
@@ -20,6 +21,7 @@ export interface OnboardingData {
   sex?: Sex;
   height?: number;
   weight?: number;
+  goalWeight?: number;
   trainingFrequency?: number;
   mealsCount?: number;
   mealsSchedule?: string[];

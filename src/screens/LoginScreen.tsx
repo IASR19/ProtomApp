@@ -27,8 +27,8 @@ type Props = {
 };
 
 export default function LoginScreen({ navigation }: Props) {
-  const [email, setEmail] = useState("itamar.ribeiro@email.com");
-  const [password, setPassword] = useState("123456");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [isRegistering, setIsRegistering] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -44,15 +44,11 @@ export default function LoginScreen({ navigation }: Props) {
     setLoading(true);
     try {
       if (isRegistering) {
-        await register(name, email, password);
-        navigation.replace("OnboardingChat");
+        const { needsProfileSetup } = await register(name, email, password);
+        navigation.replace(needsProfileSetup ? "OnboardingChat" : "MainTabs");
       } else {
-        await login(email, password);
-        if (email === "itamar.ribeiro@email.com") {
-          navigation.replace("MainTabs");
-        } else {
-          navigation.replace("OnboardingChat");
-        }
+        const { needsProfileSetup } = await login(email, password);
+        navigation.replace(needsProfileSetup ? "OnboardingChat" : "MainTabs");
       }
     } catch (err: any) {
       Alert.alert("Erro", err.message);

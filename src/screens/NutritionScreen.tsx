@@ -6,7 +6,9 @@ import {
   ScrollView,
   SafeAreaView,
   TouchableOpacity,
+  Alert,
 } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "../theme/colors";
@@ -64,25 +66,64 @@ import { api } from "../services/api";
 import { ActivityIndicator } from "react-native";
 
 export default function NutritionScreen({ navigation }: Props) {
-  const [analysed, setAnalysed] = useState(true);
+  const [hasData, setHasData] = useState(false);
   const [mealData, setMealData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState<"idle" | "processing" | "error">("idle");
+
+  const fetchMeal = async () => {
+    try {
+      const result = await api.get<{ hasData: boolean; meal: any }>("/nutrition/last-meal");
+      setHasData(result.hasData);
+      setMealData(result.meal);
+    } catch (err: any) {
+      console.warn("Erro ao buscar refeição:", err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchMeal = async () => {
-      try {
-        const result = await api.get<any>("/nutrition/last-meal");
-        setMealData(result);
-      } catch (err: any) {
-        console.warn("Erro ao buscar refeição:", err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchMeal();
   }, []);
 
-  if (loading && !mealData) {
+  const handleCameraPress = async () => {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("Permissão necessária", "Precisamos de acesso à câmera para fotografar a refeição.");
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({ quality: 0.8 });
+    if (result.canceled || !result.assets?.[0]) return;
+
+    const asset = result.assets[0];
+    setStatus("processing");
+    try {
+      const formData = new FormData();
+      formData.append("file", {
+        uri: asset.uri,
+        name: asset.fileName || "refeicao.jpg",
+        type: asset.mimeType || "image/jpeg",
+      } as any);
+      const response = await api.upload<{ analyzed: boolean; meal?: any; error?: string }>(
+        "/nutrition/analyze-photo",
+        formData,
+      );
+      if (response.analyzed && response.meal) {
+        setMealData(response.meal);
+        setHasData(true);
+        setStatus("idle");
+      } else {
+        setStatus("error");
+        Alert.alert("Estimativa por IA", response.error || "Não foi possível analisar a imagem.");
+      }
+    } catch (err: any) {
+      setStatus("error");
+      Alert.alert("Erro ao enviar foto", err.message);
+    }
+  };
+
+  if (loading) {
     return (
       <SafeAreaView style={[GlobalStyles.safeArea, { justifyContent: "center", alignItems: "center" }]}>
         <ActivityIndicator size="large" color={Colors.teal} />
@@ -90,17 +131,39 @@ export default function NutritionScreen({ navigation }: Props) {
     );
   }
 
-  const data = mealData || {
-    meal: "Almoço Estratégico",
-    totalKcal: 450,
-    goalKcal: 500,
-    proteinGrams: 40,
-    proteinPercent: 45,
-    carbGrams: 30,
-    carbPercent: 35,
-    fatGrams: 15,
-    fatPercent: 20,
-  };
+  if (!hasData) {
+    return (
+      <SafeAreaView style={GlobalStyles.safeArea}>
+        <View style={[styles.topBar, { paddingHorizontal: 20, marginTop: 16 }]}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={22} color={Colors.textSecondary} />
+          </TouchableOpacity>
+          <Text style={styles.screenTitle}>ANÁLISE DE REFEIÇÃO</Text>
+          <TouchableOpacity onPress={handleCameraPress} disabled={status === "processing"}>
+            <Ionicons name="camera-outline" size={22} color={Colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.emptyState}>
+          {status === "processing" ? (
+            <>
+              <ActivityIndicator size="large" color={Colors.teal} />
+              <Text style={styles.emptyText}>Analisando imagem...</Text>
+            </>
+          ) : (
+            <>
+              <Ionicons name="restaurant-outline" size={40} color={Colors.textMuted} />
+              <Text style={styles.emptyText}>
+                Nenhuma refeição registrada ainda. Toque no ícone de câmera para fotografar uma
+                refeição.
+              </Text>
+            </>
+          )}
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const data = mealData;
 
   const protein = {
     grams: data.proteinGrams ?? 40,
@@ -133,18 +196,20 @@ export default function NutritionScreen({ navigation }: Props) {
             />
           </TouchableOpacity>
           <Text style={styles.screenTitle}>ANÁLISE DE REFEIÇÃO</Text>
-          <Ionicons
-            name="camera-outline"
-            size={22}
-            color={Colors.textSecondary}
-          />
+          <TouchableOpacity onPress={handleCameraPress} disabled={status === "processing"}>
+            <Ionicons
+              name="camera-outline"
+              size={22}
+              color={Colors.textSecondary}
+            />
+          </TouchableOpacity>
         </View>
 
         {/* Camera Frame */}
         <View style={styles.cameraFrame}>
           <View style={styles.cornerTL} />
           <View style={styles.cornerTR} />
-          {!analysed ? (
+          {status === "processing" ? (
             <View style={styles.processingContainer}>
               <Ionicons
                 name="restaurant-outline"
@@ -161,7 +226,7 @@ export default function NutritionScreen({ navigation }: Props) {
                 color={Colors.success}
               />
               <Text style={styles.analysedText}>
-                Imagem analisada com sucesso
+                Imagem analisada com sucesso (estimativa por IA)
               </Text>
             </View>
           )}
@@ -261,6 +326,17 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: Colors.textPrimary,
     letterSpacing: 1,
+  },
+  emptyState: {
+    alignItems: "center",
+    paddingHorizontal: 32,
+    paddingVertical: 60,
+    gap: 12,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: Colors.textMuted,
+    textAlign: "center",
   },
   cameraFrame: {
     height: 200,

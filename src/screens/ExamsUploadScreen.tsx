@@ -7,7 +7,12 @@ import {
   SafeAreaView,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
+  Modal,
+  TextInput,
 } from "react-native";
+import * as ImagePicker from "expo-image-picker";
+import * as DocumentPicker from "expo-document-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "../theme/colors";
@@ -31,14 +36,94 @@ interface Exam {
 export default function ExamsUploadScreen({ navigation }: Props) {
   const [exams, setExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [editingExam, setEditingExam] = useState<Exam | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editDate, setEditDate] = useState("");
 
-  useEffect(() => {
-    api
+  const reloadExams = () => {
+    return api
       .get<Exam[]>("/exams")
       .then((data) => setExams(data))
-      .catch((err) => console.warn("Erro ao carregar exames:", err.message))
-      .finally(() => setLoading(false));
+      .catch((err) => console.warn("Erro ao carregar exames:", err.message));
+  };
+
+  useEffect(() => {
+    reloadExams().finally(() => setLoading(false));
   }, []);
+
+  const uploadFile = async (uri: string, name: string, mimeType: string) => {
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", { uri, name, type: mimeType } as any);
+      const exam = await api.upload<Exam>("/exams/upload", formData);
+      setExams((prev) => [exam, ...prev]);
+      if (exam.status === "Falha na Análise") {
+        Alert.alert(
+          "Não foi possível analisar automaticamente",
+          "Revise os dados manualmente para concluir o cadastro deste exame.",
+        );
+        openEdit(exam);
+      }
+    } catch (err: any) {
+      Alert.alert("Erro ao enviar exame", err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handlePickPhoto = async (fromCamera: boolean) => {
+    const permission = fromCamera
+      ? await ImagePicker.requestCameraPermissionsAsync()
+      : await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("Permissão necessária", "Precisamos de acesso à câmera/galeria para continuar.");
+      return;
+    }
+    const result = fromCamera
+      ? await ImagePicker.launchCameraAsync({ quality: 0.8 })
+      : await ImagePicker.launchImageLibraryAsync({ quality: 0.8 });
+    if (result.canceled || !result.assets?.[0]) return;
+    const asset = result.assets[0];
+    await uploadFile(asset.uri, asset.fileName || "exame.jpg", asset.mimeType || "image/jpeg");
+  };
+
+  const handlePickPdf = async () => {
+    const result = await DocumentPicker.getDocumentAsync({ type: "application/pdf" });
+    if (result.canceled || !result.assets?.[0]) return;
+    const asset = result.assets[0];
+    await uploadFile(asset.uri, asset.name || "exame.pdf", asset.mimeType || "application/pdf");
+  };
+
+  const handleUploadPress = () => {
+    Alert.alert("Enviar exame", "Escolha como deseja enviar o exame", [
+      { text: "Tirar Foto", onPress: () => handlePickPhoto(true) },
+      { text: "Escolher da Galeria", onPress: () => handlePickPhoto(false) },
+      { text: "Selecionar PDF", onPress: handlePickPdf },
+      { text: "Cancelar", style: "cancel" },
+    ]);
+  };
+
+  const openEdit = (exam: Exam) => {
+    setEditingExam(exam);
+    setEditName(exam.name === "Exame em análise" ? "" : exam.name);
+    setEditDate(exam.date);
+  };
+
+  const saveEdit = async () => {
+    if (!editingExam) return;
+    try {
+      const updated = await api.patch<Exam>(`/exams/${editingExam.id}`, {
+        name: editName,
+        date: editDate,
+      });
+      setExams((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
+      setEditingExam(null);
+    } catch (err: any) {
+      Alert.alert("Erro ao salvar", err.message);
+    }
+  };
 
   return (
     <SafeAreaView style={GlobalStyles.safeArea}>
@@ -60,9 +145,20 @@ export default function ExamsUploadScreen({ navigation }: Props) {
         </View>
 
         {/* Upload Area */}
-        <TouchableOpacity style={styles.uploadArea} activeOpacity={0.7}>
-          <Ionicons name="cloud-upload-outline" size={40} color={Colors.blue} />
-          <Text style={styles.uploadTitle}>Toque para enviar PDF ou Foto</Text>
+        <TouchableOpacity
+          style={styles.uploadArea}
+          activeOpacity={0.7}
+          onPress={handleUploadPress}
+          disabled={uploading}
+        >
+          {uploading ? (
+            <ActivityIndicator size="large" color={Colors.blue} />
+          ) : (
+            <Ionicons name="cloud-upload-outline" size={40} color={Colors.blue} />
+          )}
+          <Text style={styles.uploadTitle}>
+            {uploading ? "Analisando exame..." : "Toque para enviar PDF ou Foto"}
+          </Text>
           <Text style={styles.uploadSubtitle}>
             A IA extrairá os dados automaticamente
           </Text>
@@ -106,36 +202,51 @@ export default function ExamsUploadScreen({ navigation }: Props) {
           </View>
         ) : (
           <View style={styles.examsList}>
-            {exams.map((exam) => (
-              <View key={exam.id} style={styles.examCard}>
-                <View
-                  style={[
-                    styles.examIcon,
-                    exam.type === "pdf"
-                      ? styles.examIconPdf
-                      : styles.examIconImg,
-                  ]}
+            {exams.map((exam) => {
+              const failed = exam.status === "Falha na Análise";
+              const processing = exam.status === "Processando";
+              const statusColor = failed
+                ? Colors.danger
+                : processing
+                  ? Colors.warning
+                  : Colors.success;
+              const statusIcon = failed
+                ? "alert-circle"
+                : processing
+                  ? "time"
+                  : "checkmark-circle";
+              return (
+                <TouchableOpacity
+                  key={exam.id}
+                  style={styles.examCard}
+                  activeOpacity={failed ? 0.7 : 1}
+                  onPress={() => failed && openEdit(exam)}
                 >
-                  <Ionicons
-                    name={exam.type === "pdf" ? "document-text" : "image"}
-                    size={20}
-                    color={exam.type === "pdf" ? Colors.danger : Colors.blue}
-                  />
-                </View>
-                <View style={styles.examInfo}>
-                  <Text style={styles.examName}>{exam.name}</Text>
-                  <Text style={styles.examDate}>{exam.date}</Text>
-                </View>
-                <View style={styles.examStatus}>
-                  <Ionicons
-                    name="checkmark-circle"
-                    size={14}
-                    color={Colors.success}
-                  />
-                  <Text style={styles.examStatusText}> {exam.status}</Text>
-                </View>
-              </View>
-            ))}
+                  <View
+                    style={[
+                      styles.examIcon,
+                      exam.type === "pdf"
+                        ? styles.examIconPdf
+                        : styles.examIconImg,
+                    ]}
+                  >
+                    <Ionicons
+                      name={exam.type === "pdf" ? "document-text" : "image"}
+                      size={20}
+                      color={exam.type === "pdf" ? Colors.danger : Colors.blue}
+                    />
+                  </View>
+                  <View style={styles.examInfo}>
+                    <Text style={styles.examName}>{exam.name}</Text>
+                    <Text style={styles.examDate}>{exam.date}</Text>
+                  </View>
+                  <View style={[styles.examStatus, { backgroundColor: `${statusColor}1A` }]}>
+                    <Ionicons name={statusIcon as any} size={14} color={statusColor} />
+                    <Text style={[styles.examStatusText, { color: statusColor }]}> {exam.status}</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         )}
 
@@ -156,6 +267,38 @@ export default function ExamsUploadScreen({ navigation }: Props) {
           </LinearGradient>
         </TouchableOpacity>
       </ScrollView>
+
+      <Modal visible={!!editingExam} transparent animationType="fade" onRequestClose={() => setEditingExam(null)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Revisar exame</Text>
+            <Text style={styles.modalLabel}>Nome do exame</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={editName}
+              onChangeText={setEditName}
+              placeholder="Ex: Hemograma Completo"
+              placeholderTextColor={Colors.textMuted}
+            />
+            <Text style={styles.modalLabel}>Data (dd/mm/aaaa)</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={editDate}
+              onChangeText={setEditDate}
+              placeholder="15/05/2026"
+              placeholderTextColor={Colors.textMuted}
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setEditingExam(null)}>
+                <Text style={styles.modalCancelText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalSaveBtn} onPress={saveEdit}>
+                <Text style={styles.modalSaveText}>Salvar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -297,6 +440,66 @@ const styles = StyleSheet.create({
   analyzeBtnText: {
     color: Colors.white,
     fontSize: 15,
+    fontWeight: "700",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "center",
+    padding: 24,
+  },
+  modalContent: {
+    backgroundColor: Colors.bgCard,
+    borderRadius: 14,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    gap: 8,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: Colors.textPrimary,
+    marginBottom: 8,
+  },
+  modalLabel: {
+    fontSize: 12,
+    color: Colors.textMuted,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    color: Colors.textPrimary,
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  modalActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 12,
+    marginTop: 12,
+  },
+  modalCancelBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
+  modalCancelText: {
+    color: Colors.textMuted,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  modalSaveBtn: {
+    backgroundColor: Colors.teal,
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  modalSaveText: {
+    color: Colors.white,
+    fontSize: 14,
     fontWeight: "700",
   },
 });

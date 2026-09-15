@@ -36,8 +36,6 @@ export default function OnboardingChatScreen({ navigation }: Props) {
   }, [initializeChat]);
 
   const [saving, setSaving] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [statusText, setStatusText] = useState("Iniciando geração...");
   const generationStartedRef = useRef(false);
   const onboardingDataRef = useRef(onboardingData);
   onboardingDataRef.current = onboardingData;
@@ -49,18 +47,8 @@ export default function OnboardingChatScreen({ navigation }: Props) {
 
     generationStartedRef.current = true;
     setSaving(true);
-    setProgress(0);
-    setStatusText("Iniciando geração...");
-
-    let currentProgress = 0;
-    let finished = false;
-    let interval: ReturnType<typeof setInterval> | null = null;
 
     const finishGeneration = (error: string | null) => {
-      if (finished) return;
-      finished = true;
-      if (interval) clearInterval(interval);
-      setProgress(100);
       setSaving(false);
 
       if (error) {
@@ -89,21 +77,6 @@ export default function OnboardingChatScreen({ navigation }: Props) {
       }
     };
 
-    interval = setInterval(() => {
-      currentProgress = Math.min(currentProgress + 2, 95);
-      setProgress(currentProgress);
-
-      if (currentProgress < 20) {
-        setStatusText("Analisando seus dados biométricos e IMC...");
-      } else if (currentProgress < 45) {
-        setStatusText("Estruturando plano de treinos personalizado...");
-      } else if (currentProgress < 70) {
-        setStatusText("Calculando metas de nutrição e macronutrientes...");
-      } else {
-        setStatusText("Gerando recomendações de suplementação e sono...");
-      }
-    }, 50);
-
     const data = onboardingDataRef.current;
     const saveOnboarding = async () => {
       try {
@@ -113,6 +86,7 @@ export default function OnboardingChatScreen({ navigation }: Props) {
           sex: data.sex || "masculino",
           height: data.height || 180,
           weight: data.weight || 90,
+          goalWeight: data.goalWeight,
           trainingFrequency: data.trainingFrequency || 3,
           mealsCount: data.mealsCount || 4,
           mealsSchedule: data.mealsSchedule || [
@@ -123,7 +97,6 @@ export default function OnboardingChatScreen({ navigation }: Props) {
           ],
           usesSupplements: data.usesSupplements ?? false,
         });
-        setStatusText("Finalizando e salvando protocolo no banco de dados...");
         finishGeneration(null);
       } catch (err: any) {
         finishGeneration(err.message || "Erro inesperado");
@@ -131,10 +104,6 @@ export default function OnboardingChatScreen({ navigation }: Props) {
     };
 
     saveOnboarding();
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
   }, [isCompleted, navigation]);
 
   const onSend = useCallback(
@@ -207,17 +176,8 @@ export default function OnboardingChatScreen({ navigation }: Props) {
             </View>
             <Text style={styles.loaderTitle}>Gerando Protocolo</Text>
             <Text style={styles.loaderSubtitle}>
-              Nossa inteligência artificial está estruturando seu protocolo de saúde otimizado...
+              Gerando seu protocolo personalizado, isso pode levar alguns segundos...
             </Text>
-            
-            <View style={styles.progressContainer}>
-              <View style={[styles.progressBarFill, { width: `${progress}%` }]} />
-            </View>
-            
-            <View style={styles.progressTextRow}>
-              <Text style={styles.statusText}>{statusText}</Text>
-              <Text style={styles.percentText}>{progress}%</Text>
-            </View>
           </View>
         </View>
       </Modal>
@@ -274,37 +234,5 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: "center",
     lineHeight: 18,
-    marginBottom: 20,
-  },
-  progressContainer: {
-    height: 6,
-    width: "100%",
-    backgroundColor: Colors.bgPrimary,
-    borderRadius: 3,
-    overflow: "hidden",
-    marginBottom: 10,
-  },
-  progressBarFill: {
-    height: "100%",
-    backgroundColor: Colors.teal,
-    borderRadius: 3,
-  },
-  progressTextRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    width: "100%",
-  },
-  statusText: {
-    fontSize: 12,
-    color: Colors.teal,
-    fontWeight: "500",
-    flex: 1,
-    marginRight: 10,
-  },
-  percentText: {
-    fontSize: 12,
-    color: Colors.textPrimary,
-    fontWeight: "600",
   },
 });

@@ -34,29 +34,7 @@ export function registerUnauthorizedListener(callback: () => void) {
   onUnauthorized = callback;
 }
 
-async function request<T>(
-  method: string,
-  path: string,
-  body?: any,
-  options?: RequestInit
-): Promise<T> {
-  const url = `${BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
-  
-  const headers: HeadersInit = {
-    "Content-Type": "application/json",
-  };
-
-  if (accessToken) {
-    headers["Authorization"] = `Bearer ${accessToken}`;
-  }
-
-  const response = await fetch(url, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-    ...options,
-  });
-
+async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     let errorMessage = "Ocorreu um erro na requisição.";
     try {
@@ -77,10 +55,54 @@ async function request<T>(
   return text ? JSON.parse(text) : {} as any;
 }
 
+function authHeaders(): HeadersInit {
+  const headers: HeadersInit = {};
+  if (accessToken) {
+    headers["Authorization"] = `Bearer ${accessToken}`;
+  }
+  return headers;
+}
+
+async function request<T>(
+  method: string,
+  path: string,
+  body?: any,
+  options?: RequestInit
+): Promise<T> {
+  const url = `${BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
+
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+    ...authHeaders(),
+  };
+
+  const response = await fetch(url, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+    ...options,
+  });
+
+  return handleResponse<T>(response);
+}
+
+async function upload<T>(path: string, formData: FormData): Promise<T> {
+  const url = `${BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: authHeaders(),
+    body: formData,
+  });
+
+  return handleResponse<T>(response);
+}
+
 export const api = {
   get: <T>(path: string, options?: RequestInit) => request<T>("GET", path, undefined, options),
   post: <T>(path: string, body?: any, options?: RequestInit) => request<T>("POST", path, body, options),
   put: <T>(path: string, body?: any, options?: RequestInit) => request<T>("PUT", path, body, options),
   patch: <T>(path: string, body?: any, options?: RequestInit) => request<T>("PATCH", path, body, options),
   delete: <T>(path: string, options?: RequestInit) => request<T>("DELETE", path, undefined, options),
+  upload: <T>(path: string, formData: FormData) => upload<T>(path, formData),
 };

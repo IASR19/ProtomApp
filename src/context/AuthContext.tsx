@@ -22,8 +22,8 @@ interface AuthContextData {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<SocialLoginResult>;
+  register: (name: string, email: string, password: string) => Promise<SocialLoginResult>;
   loginWithGoogle: (googleToken: string) => Promise<SocialLoginResult>;
   setPassword: (password: string, name?: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -88,15 +88,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loadStorageData();
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<SocialLoginResult> => {
     setIsLoading(true);
     try {
-      const response = await api.post<{ accessToken: string; user: User }>("/auth/login", {
+      const response = await api.post<{
+        accessToken: string;
+        user: User;
+        needsProfileSetup?: boolean;
+      }>("/auth/login", {
         email,
         password,
       });
 
-      const { accessToken, user: loggedUser } = response;
+      const { accessToken, user: loggedUser, needsProfileSetup } = response;
 
       await AsyncStorage.setItem("@ProtomApp:token", accessToken);
       await AsyncStorage.setItem("@ProtomApp:user", JSON.stringify(loggedUser));
@@ -104,21 +108,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setApiAccessToken(accessToken);
       setToken(accessToken);
       setUser(loggedUser);
+
+      return { needsProfileSetup: !!needsProfileSetup };
     } finally {
       setIsLoading(false);
     }
   };
 
-  const register = async (name: string, email: string, password: string) => {
+  const register = async (name: string, email: string, password: string): Promise<SocialLoginResult> => {
     setIsLoading(true);
     try {
-      const response = await api.post<{ accessToken: string; user: User }>("/auth/register", {
+      const response = await api.post<{
+        accessToken: string;
+        user: User;
+        needsProfileSetup?: boolean;
+      }>("/auth/register", {
         name,
         email,
         password,
       });
 
-      const { accessToken, user: loggedUser } = response;
+      const { accessToken, user: loggedUser, needsProfileSetup } = response;
 
       await AsyncStorage.setItem("@ProtomApp:token", accessToken);
       await AsyncStorage.setItem("@ProtomApp:user", JSON.stringify(loggedUser));
@@ -126,6 +136,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setApiAccessToken(accessToken);
       setToken(accessToken);
       setUser(loggedUser);
+
+      return { needsProfileSetup: !!needsProfileSetup };
     } finally {
       setIsLoading(false);
     }

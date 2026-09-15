@@ -153,7 +153,9 @@ export default function BodyScanScreen({ navigation }: Props) {
   useEffect(() => {
     const fetchBodyScan = async () => {
       try {
-        const result = await api.get<any>("/users/body-scan");
+        // POST: abrir esta tela é a ação de "fazer o scan de hoje" — registra o snapshot
+        // no backend (GET só leria, sem gravar; ver UsersService.getBodyScan/recordBodyScan).
+        const result = await api.post<any>("/users/body-scan");
         setScanData(result);
       } catch (err: any) {
         console.warn("Erro ao buscar body scan:", err.message);
@@ -193,7 +195,7 @@ export default function BodyScanScreen({ navigation }: Props) {
     outputRange: [0, 1, 1, 0],
   });
 
-  if (loading && !scanData) {
+  if (loading || !scanData) {
     return (
       <SafeAreaView style={[GlobalStyles.safeArea, { justifyContent: "center", alignItems: "center" }]}>
         <ActivityIndicator size="large" color={Colors.teal} />
@@ -201,19 +203,16 @@ export default function BodyScanScreen({ navigation }: Props) {
     );
   }
 
-  const data = scanData || {
-    bodyFat: 28.5,
-    bodyFatDelta: -2.1,
-    visceralFat: 12,
-    visceralFatDelta: -1,
-    weight: 128,
-    weightDelta: -5,
-    waist: 112,
-    waistDelta: -4,
-    leanMass: 42,
-    leanMassDelta: 0,
-    comparisonLabel: "Comparativo: Mês 1 vs Mês 2",
-  };
+  const data = scanData;
+  const hasHistory: boolean = !!data.hasHistory;
+  const capturedAtLabel = data.capturedAt
+    ? new Date(data.capturedAt).toLocaleString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "";
 
   return (
 
@@ -243,12 +242,19 @@ export default function BodyScanScreen({ navigation }: Props) {
         <View style={styles.scanArea}>
           {/* Left tag */}
           <View style={styles.leftTag}>
-            <ScanTag
-              value={`${data.bodyFat}%`}
-              label="GORDURA CORPORAL"
-              delta={`${Math.abs(data.bodyFatDelta)}%`}
-              improving={data.bodyFatDelta < 0}
-            />
+            {hasHistory ? (
+              <ScanTag
+                value={`${data.bodyFat}%`}
+                label="GORDURA CORPORAL"
+                delta={`${Math.abs(data.bodyFatDelta)}%`}
+                improving={data.bodyFatDelta < 0}
+              />
+            ) : (
+              <View style={scanTagStyles.container}>
+                <Text style={scanTagStyles.value}>{data.bodyFat}%</Text>
+                <Text style={scanTagStyles.label}>GORDURA CORPORAL</Text>
+              </View>
+            )}
           </View>
 
           {/* Silhouette */}
@@ -267,19 +273,28 @@ export default function BodyScanScreen({ navigation }: Props) {
 
           {/* Right tag */}
           <View style={styles.rightTag}>
-            <ScanTag
-              value={`Nível ${data.visceralFat}`}
-              label="GORDURA VISCERAL"
-              delta={`${Math.abs(data.visceralFatDelta)} Nível`}
-              improving={data.visceralFatDelta < 0}
-            />
+            {hasHistory ? (
+              <ScanTag
+                value={`Nível ${data.visceralFat}`}
+                label="GORDURA VISCERAL"
+                delta={`${Math.abs(data.visceralFatDelta)} Nível`}
+                improving={data.visceralFatDelta < 0}
+              />
+            ) : (
+              <View style={scanTagStyles.container}>
+                <Text style={scanTagStyles.value}>Nível {data.visceralFat}</Text>
+                <Text style={scanTagStyles.label}>GORDURA VISCERAL</Text>
+              </View>
+            )}
           </View>
         </View>
 
         {/* Comparison Header */}
         <View style={GlobalStyles.spaceBetween}>
-          <Text style={styles.compLabel}>{data.comparisonLabel}</Text>
-          <Text style={styles.compDate}>Hoje, 08:30 AM</Text>
+          <Text style={styles.compLabel}>
+            {hasHistory ? "Comparativo com a medição anterior" : "Primeira medição, sem comparativo ainda"}
+          </Text>
+          <Text style={styles.compDate}>{capturedAtLabel}</Text>
         </View>
 
         {/* Stats Row */}
@@ -287,23 +302,33 @@ export default function BodyScanScreen({ navigation }: Props) {
           <View style={styles.statCard}>
             <Text style={styles.statValue}>{data.weight} kg</Text>
             <Text style={styles.statLabel}>Peso Atual</Text>
-            <Text style={styles.statDelta}>
-              - {Math.abs(data.weightDelta)} kg
-            </Text>
+            {hasHistory && (
+              <Text style={styles.statDelta}>
+                {data.weightDelta > 0 ? "+" : ""}
+                {data.weightDelta} kg
+              </Text>
+            )}
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statValue}>{data.waist} cm</Text>
             <Text style={styles.statLabel}>Cintura</Text>
-            <Text style={styles.statDelta}>
-              - {Math.abs(data.waistDelta)} cm
-            </Text>
+            {hasHistory && (
+              <Text style={styles.statDelta}>
+                {data.waistDelta > 0 ? "+" : ""}
+                {data.waistDelta} cm
+              </Text>
+            )}
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statValue}>{data.leanMass} kg</Text>
             <Text style={styles.statLabel}>Massa Magra</Text>
-            <Text style={[styles.statDelta, { color: Colors.teal }]}>
-              Mantida
-            </Text>
+            {hasHistory && (
+              <Text style={[styles.statDelta, { color: Colors.teal }]}>
+                {data.leanMassDelta === 0
+                  ? "Mantida"
+                  : `${data.leanMassDelta > 0 ? "+" : ""}${data.leanMassDelta} kg`}
+              </Text>
+            )}
           </View>
         </View>
       </ScrollView>
