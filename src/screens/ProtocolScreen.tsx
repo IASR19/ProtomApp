@@ -16,6 +16,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { Colors } from "../theme/colors";
 import { GlobalStyles } from "../theme/styles";
 import { api } from "../services/api";
+import { useTourTarget } from "../hooks/useTourTarget";
 
 const TAG_COLORS: Record<string, { bg: string; text: string; border: string }> =
   {
@@ -138,12 +139,12 @@ function TaskCard({
 
 function PhaseSection({
   label,
-  emoji,
+  icon,
   tasks,
   onToggle,
 }: {
   label: string;
-  emoji: string;
+  icon: keyof typeof Ionicons.glyphMap;
   tasks: any[];
   onToggle: (id: string) => void;
 }) {
@@ -158,7 +159,11 @@ function PhaseSection({
           { borderLeftColor: PHASE_BORDER[label] ?? Colors.teal },
         ]}
       >
-        <Text style={styles.phaseEmoji}>{emoji}</Text>
+        <Ionicons
+          name={icon}
+          size={16}
+          color={PHASE_BORDER[label] ?? Colors.teal}
+        />
         <Text
           style={[
             styles.phaseLabel,
@@ -190,8 +195,8 @@ function MedicationCard({ medications }: { medications: any[] }) {
         end={{ x: 1, y: 1 }}
       >
         <View style={styles.stackTitleRow}>
-          <Ionicons name="medical" size={18} color={Colors.purple} />
-          <Text style={[styles.stackTitle, { color: Colors.purple }]}>
+          <Ionicons name="medical" size={18} color={TAG_COLORS["MEDICAÇÃO"].text} />
+          <Text style={[styles.stackTitle, { color: TAG_COLORS["MEDICAÇÃO"].text }]}>
             {" "}
             STACK MEDICAMENTOSO
           </Text>
@@ -217,7 +222,7 @@ function MedicationCard({ medications }: { medications: any[] }) {
               <Ionicons
                 name="chevron-forward"
                 size={11}
-                color={Colors.purple}
+                color={TAG_COLORS["MEDICAÇÃO"].text}
               />
               <Text style={styles.instructionText}> {ins}</Text>
             </View>
@@ -249,8 +254,8 @@ function SupplementCard({ supplements }: { supplements: any[] }) {
         end={{ x: 1, y: 1 }}
       >
         <View style={styles.stackTitleRow}>
-          <Ionicons name="moon" size={18} color={Colors.teal} />
-          <Text style={[styles.stackTitle, { color: Colors.teal }]}>
+          <Ionicons name="moon" size={18} color={TAG_COLORS["BIOHACKING"].text} />
+          <Text style={[styles.stackTitle, { color: TAG_COLORS["BIOHACKING"].text }]}>
             {" "}
             BIOHACKING STACK
           </Text>
@@ -262,7 +267,7 @@ function SupplementCard({ supplements }: { supplements: any[] }) {
                 <Ionicons
                   name={(s.icon || "leaf-outline") as keyof typeof Ionicons.glyphMap}
                   size={16}
-                  color={Colors.teal}
+                  color={TAG_COLORS["BIOHACKING"].text}
                 />
                 <Text style={styles.suppTime}>{s.time}</Text>
               </View>
@@ -297,8 +302,8 @@ function MealPlanCard({ meals }: { meals: any[] }) {
         end={{ x: 1, y: 1 }}
       >
         <View style={styles.stackTitleRow}>
-          <Ionicons name="restaurant" size={18} color="#4ADE80" />
-          <Text style={[styles.stackTitle, { color: "#4ADE80" }]}>
+          <Ionicons name="restaurant" size={18} color={TAG_COLORS["NUTRIÇÃO"].text} />
+          <Text style={[styles.stackTitle, { color: TAG_COLORS["NUTRIÇÃO"].text }]}>
             {" "}
             PLANO ALIMENTAR (DIETA)
           </Text>
@@ -332,6 +337,7 @@ function MealPlanCard({ meals }: { meals: any[] }) {
 export default function ProtocolScreen({ navigation }: any) {
   const [protocol, setProtocol] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const adherenceTourTarget = useTourTarget("protocol-adherence");
 
   const fetchProtocol = async () => {
     try {
@@ -493,7 +499,11 @@ export default function ProtocolScreen({ navigation }: any) {
         )}
 
         {/* Adherence cockpit */}
-        <View style={styles.adherenceCard}>
+        <View
+          style={styles.adherenceCard}
+          ref={adherenceTourTarget.ref}
+          onLayout={adherenceTourTarget.onLayout}
+        >
           <RingProgress
             value={adherence}
             color={
@@ -549,19 +559,19 @@ export default function ProtocolScreen({ navigation }: any) {
         {/* Timeline by phase */}
         <PhaseSection
           label="MANHÃ"
-          emoji="🌅"
+          icon="sunny-outline"
           tasks={morning}
           onToggle={toggleTask}
         />
         <PhaseSection
           label="TARDE"
-          emoji="☀️"
+          icon="partly-sunny-outline"
           tasks={afternoon}
           onToggle={toggleTask}
         />
         <PhaseSection
           label="NOITE"
-          emoji="🌆"
+          icon="moon-outline"
           tasks={evening}
           onToggle={toggleTask}
         />
@@ -735,7 +745,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     gap: 6,
   },
-  phaseEmoji: { fontSize: 14 },
   phaseLabel: { fontSize: 11, fontWeight: "700", letterSpacing: 1.5 },
   phaseLine: { flex: 1, height: 1, backgroundColor: Colors.border },
   taskCard: {
@@ -789,14 +798,14 @@ const styles = StyleSheet.create({
   medItem: { gap: 8 },
   medName: { fontSize: 16, fontWeight: "700", color: Colors.textPrimary },
   medDoseBadge: {
-    backgroundColor: "rgba(139,92,246,0.2)",
+    backgroundColor: TAG_COLORS["MEDICAÇÃO"].bg,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: Colors.purple,
+    borderColor: TAG_COLORS["MEDICAÇÃO"].border,
   },
-  medDoseText: { fontSize: 12, color: Colors.purple, fontWeight: "700" },
+  medDoseText: { fontSize: 12, color: TAG_COLORS["MEDICAÇÃO"].text, fontWeight: "700" },
   medMetaRow: { flexDirection: "row", alignItems: "center" },
   medMeta: { fontSize: 12, color: Colors.textMuted },
   dividerThin: { height: 1, backgroundColor: Colors.border, marginVertical: 8 },

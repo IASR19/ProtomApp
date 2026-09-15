@@ -18,6 +18,7 @@ import { useAuth } from "../context/AuthContext";
 import { api } from "../services/api";
 import { MetabolicScoreCard } from "../components/MetabolicScoreCard";
 import { SmartAlertsCard } from "../components/SmartAlertsCard";
+import { useTourTarget } from "../hooks/useTourTarget";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { MainTabParamList } from "../navigation";
 
@@ -56,6 +57,7 @@ export default function DashboardScreen({ navigation }: Props) {
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [profileData, setProfileData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const scoreTourTarget = useTourTarget("home-score");
 
   const fetchData = async () => {
     try {
@@ -159,11 +161,13 @@ export default function DashboardScreen({ navigation }: Props) {
         </View>
 
         {/* Score Metabólico Expandido */}
-        <MetabolicScoreCard
-          score={dash.metabolicScore}
-          details={dash.metabolicScoreDetails}
-          onCheckinPress={() => (navigation as any).navigate("DailyCheckin")}
-        />
+        <View ref={scoreTourTarget.ref} onLayout={scoreTourTarget.onLayout}>
+          <MetabolicScoreCard
+            score={dash.metabolicScore}
+            details={dash.metabolicScoreDetails}
+            onCheckinPress={() => (navigation as any).navigate("DailyCheckin")}
+          />
+        </View>
 
         {/* 4 Metric Cards */}
         <View style={styles.metricsGrid}>
@@ -225,50 +229,6 @@ export default function DashboardScreen({ navigation }: Props) {
 
         {/* Sistema de Alertas Inteligentes */}
         <SmartAlertsCard alerts={dash.alerts} />
-
-        {/* Quick Actions */}
-        <Text style={[GlobalStyles.sectionTitle, { marginTop: 24 }]}>
-          Acesso Rápido
-        </Text>
-        <View style={styles.quickActions}>
-          {[
-            { label: "Protocolo", icon: "list" as const, screen: "Protocol" },
-            {
-              label: "Treino",
-              icon: "barbell" as const,
-              screen: "WorkoutIndication",
-            },
-            {
-              label: "Nutrição",
-              icon: "restaurant" as const,
-              screen: "Nutrition",
-            },
-            {
-              label: "Body Scan",
-              icon: "body" as const,
-              screen: "BodyScan",
-            },
-            {
-              label: "Exames",
-              icon: "document-text" as const,
-              screen: "ExamsUpload",
-            },
-            {
-              label: "Receitas",
-              icon: "medkit" as const,
-              screen: "Prescriptions",
-            },
-          ].map((item) => (
-            <TouchableOpacity
-              key={item.label}
-              style={styles.quickAction}
-              onPress={() => (navigation as any).navigate(item.screen)}
-            >
-              <Ionicons name={item.icon} size={22} color={Colors.teal} />
-              <Text style={styles.quickActionLabel}>{item.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -449,27 +409,5 @@ const styles = StyleSheet.create({
     color: Colors.danger,
     fontSize: 13,
     fontWeight: "500",
-  },
-  quickActions: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-  },
-  quickAction: {
-    width: "30%",
-    flexGrow: 1,
-    backgroundColor: Colors.bgCard,
-    borderRadius: 12,
-    padding: 14,
-    alignItems: "center",
-    gap: 6,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  quickActionLabel: {
-    fontSize: 11,
-    color: Colors.textSecondary,
-    fontWeight: "500",
-    textAlign: "center",
   },
 });

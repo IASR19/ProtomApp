@@ -286,7 +286,7 @@ export default function NutritionScreen({ navigation }: Props) {
           />
         </View>
 
-        {/* Confirm */}
+        {/* Meal already saved by the analyze step above; this just returns to the dashboard */}
         <TouchableOpacity
           style={styles.btn}
           onPress={() => navigation.goBack()}
@@ -298,9 +298,9 @@ export default function NutritionScreen({ navigation }: Props) {
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
           >
-            <Ionicons name="checkmark" size={18} color={Colors.white} />
+            <Ionicons name="arrow-forward" size={18} color={Colors.white} />
             <Text style={[GlobalStyles.btnPrimaryText, { marginLeft: 8 }]}>
-              Confirmar Refeição
+              Voltar ao Painel
             </Text>
           </LinearGradient>
         </TouchableOpacity>

@@ -10,6 +10,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../theme/colors";
 import { GlobalStyles } from "../theme/styles";
+import { useTourTarget } from "../hooks/useTourTarget";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { MainTabParamList } from "../navigation";
 
@@ -63,6 +64,7 @@ export default function ProfileScreen({ navigation }: Props) {
   const { user, logout } = useAuth();
   const [planRenewalDate, setPlanRenewalDate] = useState<string | null>(null);
   const [planCancelled, setPlanCancelled] = useState(false);
+  const menuTourTarget = useTourTarget("profile-menu");
 
   useEffect(() => {
     api
@@ -120,7 +122,7 @@ export default function ProfileScreen({ navigation }: Props) {
         {/* Premium Plan */}
         <View style={styles.planCard}>
           <View style={GlobalStyles.row}>
-            <Text style={styles.planIcon}>👑</Text>
+            <Ionicons name="ribbon-outline" size={16} color={Colors.warning} />
             <Text style={styles.planLabel}> Plano {plan}</Text>
           </View>
           <View style={GlobalStyles.row}>
@@ -141,7 +143,7 @@ export default function ProfileScreen({ navigation }: Props) {
         </View>
 
         {/* Menu Items */}
-        <View style={styles.menuSection}>
+        <View style={styles.menuSection} ref={menuTourTarget.ref} onLayout={menuTourTarget.onLayout}>
           <MenuItem
             icon="people-outline"
             label="Equipe Médica"
@@ -239,9 +241,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: 20,
-  },
-  planIcon: {
-    fontSize: 16,
   },
   planLabel: {
     fontSize: 15,

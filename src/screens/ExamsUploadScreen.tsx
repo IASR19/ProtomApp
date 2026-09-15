@@ -250,20 +250,20 @@ export default function ExamsUploadScreen({ navigation }: Props) {
           </View>
         )}
 
-        {/* CTA */}
+        {/* CTA: this navigates to the evolution/comparison view, not a new analysis */}
         <TouchableOpacity
           style={styles.analyzeBtn}
           onPress={() => navigation.navigate("ExamsEvolution")}
           activeOpacity={0.85}
         >
           <LinearGradient
-            colors={["#6366F1", "#8B5CF6"]}
+            colors={[Colors.teal, Colors.tealDark]}
             style={styles.analyzeBtnGradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
           >
-            <Ionicons name="pencil-outline" size={16} color={Colors.white} />
-            <Text style={styles.analyzeBtnText}> Analisar Novos Exames</Text>
+            <Ionicons name="trending-up-outline" size={16} color={Colors.white} />
+            <Text style={styles.analyzeBtnText}> Ver Evolução dos Exames</Text>
           </LinearGradient>
         </TouchableOpacity>
       </ScrollView>

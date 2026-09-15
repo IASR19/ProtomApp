@@ -238,6 +238,12 @@ export default function BodyScanScreen({ navigation }: Props) {
           />
         </View>
 
+        {/* Opening this screen records today's scan (see effect above); make that visible */}
+        <View style={styles.recordedBanner}>
+          <Ionicons name="checkmark-circle" size={14} color={Colors.success} />
+          <Text style={styles.recordedBannerText}> Scan de hoje registrado</Text>
+        </View>
+
         {/* 3D Body + Tags */}
         <View style={styles.scanArea}>
           {/* Left tag */}
@@ -353,6 +359,21 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: Colors.textPrimary,
     letterSpacing: 2,
+  },
+  recordedBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    backgroundColor: "rgba(16,185,129,0.12)",
+    borderRadius: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    marginBottom: 16,
+  },
+  recordedBannerText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: Colors.success,
   },
   scanArea: {
     flexDirection: "row",
