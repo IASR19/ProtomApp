@@ -21,7 +21,10 @@
       "package": "com.anonymous.protomappmobile"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "themeColor": "#0A1628",
+      "backgroundColor": "#0A1628",
+      "description": "ProtomApp — acompanhamento metabólico, treino e nutrição."
     }
   }
 }

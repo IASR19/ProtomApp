@@ -11,16 +11,17 @@ export const Colors = {
   teal: "#00C9B1",
   tealDark: "#00A896",
   tealLight: "#2DD4BF",
-  blue: "#3B82F6",
+  blue: "#3D8EC9",
   blueLight: "#60A5FA",
   purple: "#8B5CF6",
+  grayLight: "#CBD5E1",
 
   // Status
-  success: "#10B981",
+  success: "#22C55E",
   warning: "#F59E0B",
   danger: "#EF4444",
   dangerLight: "#FCA5A5",
-  info: "#60A5FA",
+  info: "#3D8EC9",
 
   // Text
   textPrimary: "#FFFFFF",

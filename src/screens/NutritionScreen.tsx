@@ -7,6 +7,7 @@ import {
   SafeAreaView,
   TouchableOpacity,
   Alert,
+  Platform,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
@@ -99,12 +100,23 @@ export default function NutritionScreen({ navigation }: Props) {
     const asset = result.assets[0];
     setStatus("processing");
     try {
+      const fileName = asset.fileName || "refeicao.jpg";
+      const mimeType = asset.mimeType || "image/jpeg";
       const formData = new FormData();
-      formData.append("file", {
-        uri: asset.uri,
-        name: asset.fileName || "refeicao.jpg",
-        type: asset.mimeType || "image/jpeg",
-      } as any);
+      if (Platform.OS === "web") {
+        // No web, asset.uri é um blob:/data: URL — o formato { uri, name, type }
+        // só é reconhecido como arquivo pelo bridge nativo do RN. No browser,
+        // FormData.append faz toString() no objeto, virando um campo de texto
+        // quebrado em vez de um arquivo. Precisa buscar o blob real primeiro.
+        const blob = await (await fetch(asset.uri)).blob();
+        formData.append("file", blob, fileName);
+      } else {
+        formData.append("file", {
+          uri: asset.uri,
+          name: fileName,
+          type: mimeType,
+        } as any);
+      }
       const response = await api.upload<{ analyzed: boolean; meal?: any; error?: string }>(
         "/nutrition/analyze-photo",
         formData,
