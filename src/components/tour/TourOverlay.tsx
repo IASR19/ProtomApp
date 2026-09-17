@@ -1,5 +1,5 @@
-import React from "react";
-import { Modal, View, Text, StyleSheet, TouchableOpacity, Dimensions } from "react-native";
+import React, { useEffect } from "react";
+import { BackHandler, Platform, View, Text, StyleSheet, TouchableOpacity, Dimensions } from "react-native";
 import { Colors } from "../../theme/colors";
 import { useTour } from "../../context/TourContext";
 import type { TourStep } from "../../tour/steps";
@@ -80,28 +80,37 @@ export function TourOverlay() {
   const { running, currentStep, targets, isLastStep, nextStep, skipTour, completeTour } =
     useTour();
 
+  useEffect(() => {
+    if (!running || Platform.OS !== "android") return;
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      skipTour();
+      return true;
+    });
+    return () => sub.remove();
+  }, [running, skipTour]);
+
   if (!running) return null;
 
   const rect = currentStep ? targets[currentStep.id] : undefined;
 
-  // O Modal fica montado durante todo o tour (não só quando o passo atual já
-  // tem posição registrada), pra trocar de passo não desmontar/remontar o
-  // Modal a cada troca de aba — isso evitaria a animação de entrada dele
-  // piscando entre um passo e outro.
-  return (
-    <Modal transparent visible animationType="fade" onRequestClose={skipTour}>
-      {currentStep && rect ? (
-        <TourHighlight
-          step={currentStep}
-          rect={rect}
-          isLastStep={isLastStep}
-          onNext={nextStep}
-          onSkip={skipTour}
-          onComplete={completeTour}
-        />
-      ) : null}
-    </Modal>
-  );
+  // Renderizado como View absoluta (não Modal): no web, o <Modal> do
+  // react-native-web faz o overlay num portal separado com um <div>
+  // full-screen que não tem pointerEvents configurável e intercepta todo
+  // clique, mesmo sobre o "buraco" do spotlight — impedindo o toque de
+  // atravessar até o elemento real destacado por baixo (ex.: aba da tab
+  // bar). Como este componente já é renderizado como irmão do
+  // Tab.Navigator, uma View absoluta comum com pointerEvents="box-none"
+  // deixa o clique passar corretamente por estar na mesma árvore.
+  return currentStep && rect ? (
+    <TourHighlight
+      step={currentStep}
+      rect={rect}
+      isLastStep={isLastStep}
+      onNext={nextStep}
+      onSkip={skipTour}
+      onComplete={completeTour}
+    />
+  ) : null;
 }
 
 const styles = StyleSheet.create({
