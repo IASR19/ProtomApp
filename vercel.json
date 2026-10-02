@@ -1,7 +1,19 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "cd apps/web && npm ci && cd ../api && npm ci",
+  "buildCommand": "cd apps/web && npm run build && cd ../api && npm run build",
+  "outputDirectory": "apps/web/dist",
+  "functions": {
+    "api/index.js": {
+      "maxDuration": 300,
+      "includeFiles": "{apps/api/dist/**,apps/api/node_modules/swagger-ui-dist/**}"
+    }
+  },
   "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api"
+    },
     {
       "source": "/app",
       "destination": "/app/index.html"

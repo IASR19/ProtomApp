@@ -1,4 +1,4 @@
-name: Frontend Main Vercel
+name: Main Vercel
 
 on:
   push:
@@ -10,14 +10,24 @@ permissions:
   contents: read
   pull-requests: write
 
+concurrency:
+  group: vercel-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
   VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_FRONT }}
+  # O front web chama a API no mesmo domínio (função serverless em /api).
+  EXPO_PUBLIC_API_URL: /api
+  EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: ${{ secrets.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID }}
 
 jobs:
-  lint-and-build:
-    name: Build
+  build-web:
+    name: Build Web
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
 
     steps:
       - name: Checkout code
@@ -28,19 +38,94 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
+          cache-dependency-path: apps/web/package-lock.json
 
       - name: Install dependencies
         run: npm ci
 
       - name: Build application
         run: npm run build
-        env:
-          EXPO_PUBLIC_API_URL: ${{ secrets.EXPO_PUBLIC_API_URL }}
-          EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: ${{ secrets.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID }}
+
+  build-api:
+    name: Build API
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: apps/api/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+  migrate:
+    name: Database Migrations
+    needs: [build-web, build-api]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    environment:
+      name: production
+    defaults:
+      run:
+        working-directory: apps/api
+    env:
+      DB_HOST: ${{ secrets.DB_HOST }}
+      DB_PORT: ${{ secrets.DB_PORT }}
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASS: ${{ secrets.DB_PASS }}
+      DB_NAME: ${{ secrets.DB_NAME }}
+      DB_SCHEMA: ${{ secrets.DB_SCHEMA }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: apps/api/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Ensure database schema exists
+        run: |
+          node -e "
+            const { Client } = require('pg');
+            const client = new Client({
+              host: process.env.DB_HOST,
+              port: parseInt(process.env.DB_PORT || '5432'),
+              user: process.env.DB_USER,
+              password: process.env.DB_PASS,
+              database: process.env.DB_NAME,
+              ssl: process.env.DB_HOST !== 'localhost' ? { rejectUnauthorized: false } : false
+            });
+            client.connect()
+              .then(() => client.query('CREATE SCHEMA IF NOT EXISTS \"' + (process.env.DB_SCHEMA || 'app') + '\";'))
+              .then(() => { console.log('Schema ensured successfully'); client.end(); })
+              .catch(err => { console.error('Error ensuring schema:', err); process.exit(1); });
+          "
+
+      - name: Run database migrations
+        run: npm run migration:run
 
   deploy-preview:
     name: Deploy Preview
-    needs: lint-and-build
+    needs: [build-web, build-api]
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
 
@@ -52,7 +137,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'npm'
 
       - name: Install Vercel CLI
         run: npm install -g vercel@latest
@@ -62,9 +146,6 @@ jobs:
 
       - name: Build Project
         run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          EXPO_PUBLIC_API_URL: ${{ secrets.EXPO_PUBLIC_API_URL }}
-          EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: ${{ secrets.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID }}
 
       - name: Deploy to Vercel (Preview)
         id: deploy
@@ -80,14 +161,15 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '🚀 **Preview deployed!**\n\n📱 Frontend: ${{ steps.deploy.outputs.url }}'
+              body: '🚀 **Preview deployed!**\n\n📱 App: ${{ steps.deploy.outputs.url }}/app\n🔌 API: ${{ steps.deploy.outputs.url }}/api/docs'
             })
 
   deploy-production:
     name: Deploy Production
-    needs: lint-and-build
+    needs: migrate
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    environment:
+      name: production
 
     steps:
       - name: Checkout code
@@ -97,7 +179,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'npm'
 
       - name: Install Vercel CLI
         run: npm install -g vercel@latest
@@ -107,9 +188,6 @@ jobs:
 
       - name: Build Project
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          EXPO_PUBLIC_API_URL: ${{ secrets.EXPO_PUBLIC_API_URL }}
-          EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: ${{ secrets.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID }}
 
       - name: Deploy to Vercel (Production)
         run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
