@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <script>
+      // App instalado (PWA) nunca ve a vitrine: quem abrir "/" em modo app vai direto pro /app.
+      // Cobre quem instalou quando o start_url ainda era "/".
+      (function () {
+        var mq = function (q) {
+          return window.matchMedia && window.matchMedia(q).matches;
+        };
+        // So "standalone" (o display do manifest): "fullscreen" tambem casa com F11 no desktop.
+        var installed = mq("(display-mode: standalone)") || window.navigator.standalone === true;
+        if (installed) {
+          document.documentElement.style.visibility = "hidden";
+          window.location.replace("/app" + window.location.search + window.location.hash);
+          return;
+        }
+        document.documentElement.className += " js";
+        // Sem o main.js (erro de rede/bloqueador), o CSS revela o conteudo sozinho depois de alguns segundos.
+      })();
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>ProtomApp — Dados hoje. Uma vida melhor sempre.</title>
+    <meta
+      name="description"
+      content="Protocolo, treino, nutrição e exames num só lugar, com um score metabólico que mostra sua evolução. Beta aberto com preço de fundador e 14 dias grátis."
+    />
+    <meta name="theme-color" content="#0A1628" />
+    <link rel="icon" href="/favicon.ico" />
+    <!-- Manifest aqui tambem: "instalar"/"adicionar a tela inicial" feito na vitrine abre o app em /app (start_url) -->
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta property="og:title" content="ProtomApp — Dados hoje. Uma vida melhor sempre." />
+    <meta
+      property="og:description"
+      content="Saúde, performance e longevidade num só app. Beta aberto com preço de fundador."
+    />
+    <meta property="og:type" content="website" />
+    <!-- __SITE_URL__ vira o dominio absoluto no build (scripts/build-web.mjs) -->
+    <meta property="og:url" content="__SITE_URL__/" />
+    <meta property="og:image" content="__SITE_URL__/pwa-icons/icon-512.png" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Manrope:wght@400;500;600;700&family=Sora:wght@300;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/lp/styles.css" />
+  </head>
+
+  <body>
+    <!-- Simbolo do logo, reaproveitado em todo lugar via <use href="#protom-mark"> -->
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <symbol id="protom-mark" viewBox="214 215 592 638">
+          <path d="M218 396 398 219h404v313L670 657V424l92-90-422 2v189l-122 116Z" />
+          <path d="m527 444 57 57-363 347-1-112Z" />
+        </symbol>
+      </defs>
+    </svg>
+
+    <a class="skip" href="#conteudo">Pular para o conteúdo</a>
+
+    <header class="topbar" id="topo">
+      <div class="wrap topbar__inner">
+        <a class="brand" href="#topo" aria-label="ProtomApp, voltar ao topo">
+          <svg class="brand__mark" aria-hidden="true"><use href="#protom-mark" /></svg>
+          <span class="brand__word"><b>Protom</b>App</span>
+        </a>
+        <nav class="topbar__nav" aria-label="Seções">
+          <a href="#como-funciona">Como funciona</a>
+          <a href="#planos">Planos</a>
+          <a href="#duvidas">Dúvidas</a>
+        </nav>
+        <div class="topbar__actions">
+          <a class="link-quiet" href="/app">Já tenho conta</a>
+          <a class="btn btn--sm" href="/app">Entrar no beta</a>
+        </div>
+      </div>
+    </header>
+
+    <main id="conteudo">
+      <!-- HERO -->
+      <section class="hero">
+        <svg class="hero__watermark" data-parallax="0.12" aria-hidden="true"><use href="#protom-mark" /></svg>
+        <div class="wrap hero__grid">
+          <div class="hero__copy">
+            <p class="tag"><span class="tag__dot"></span>Beta aberto · preço de fundador</p>
+            <h1 class="hero__title">
+              Dados hoje.<br />
+              Uma vida melhor<br />
+              <span class="hl">sempre.</span>
+            </h1>
+            <p class="hero__lead">
+              Protocolo, treino, nutrição e exames no mesmo lugar. O ProtomApp cruza o que você faz todo dia
+              e devolve um <strong>score metabólico</strong> que mostra, sem achismo, se você está indo pra frente.
+            </p>
+            <div class="hero__cta">
+              <a class="btn btn--pulse" href="/app">Começar 14 dias grátis</a>
+              <a class="btn btn--ghost" href="#planos">Ver planos</a>
+            </div>
+            <p class="hero__note">Sem cartão de crédito durante o beta.</p>
+            <p class="pillars" aria-label="Pilares">
+              <span>Saúde</span><i></i><span>Performance</span><i></i><span>Longevidade</span>
+            </p>
+          </div>
+
+          <div class="hero__device">
+            <div class="float float--a" aria-hidden="true">
+              <svg viewBox="0 0 24 24" class="ico ico--teal"><path d="m5 12.5 4.2 4.2L19 7" /></svg>
+              <div><b>Check-in feito</b><span>hoje, 07:42</span></div>
+            </div>
+            <div class="float float--b" aria-hidden="true">
+              <span class="float__num">90%</span>
+              <div><b>Adesão semanal</b><span>ao protocolo</span></div>
+            </div>
+
+            <div class="phone" id="phone" aria-label="Demonstração do app" role="img">
+              <div class="phone__notch"></div>
+              <div class="phone__screen">
+                <div class="app-bar">
+                  <span class="app-bar__brand">
+                    <svg aria-hidden="true"><use href="#protom-mark" /></svg><b>Protom</b>App
+                  </span>
+                  <svg viewBox="0 0 24 24" class="ico ico--sm"><path d="M6 9a6 6 0 0 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9M10 20a2 2 0 0 0 4 0" /></svg>
+                </div>
+
+                <div class="scenes">
+                  <!-- Cena 1: Score metabolico -->
+                  <div class="scene is-active" data-scene="0">
+                    <p class="scene__title">Score Metabólico</p>
+                    <div class="score">
+                      <svg viewBox="0 0 120 120" class="ring">
+                        <circle cx="60" cy="60" r="50" class="ring__track" />
+                        <circle cx="60" cy="60" r="50" class="ring__value" pathLength="100" />
+                      </svg>
+                      <div class="score__num"><b data-score>85</b><span>/100</span></div>
+                      <p class="score__label">Excelente</p>
+                    </div>
+                    <ul class="bars">
+                      <li><span>Adesão ao protocolo</span><em>90%</em><i style="--v: 90%"></i></li>
+                      <li><span>Peso e composição</span><em>80%</em><i style="--v: 80%"></i></li>
+                      <li><span>Sono e recuperação</span><em>85%</em><i style="--v: 85%"></i></li>
+                      <li><span>Exames e marcadores</span><em>78%</em><i style="--v: 78%"></i></li>
+                    </ul>
+                  </div>
+
+                  <!-- Cena 2: Check-in -->
+                  <div class="scene" data-scene="1">
+                    <p class="scene__title">Check-in de hoje</p>
+                    <ul class="checkin">
+                      <li><span>Sono</span><b>7h30</b></li>
+                      <li>
+                        <span>Energia</span>
+                        <span class="dots" aria-label="4 de 5"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span>
+                      </li>
+                      <li><span>Peso</span><b>82,4 kg</b></li>
+                      <li><span>Água</span><b>2,1 L</b></li>
+                    </ul>
+                    <div class="saved">
+                      <svg viewBox="0 0 24 24" class="ico ico--sm"><path d="m5 12.5 4.2 4.2L19 7" /></svg>
+                      Check-in salvo · score atualizado
+                    </div>
+                  </div>
+
+                  <!-- Cena 3: Refeicao -->
+                  <div class="scene" data-scene="2">
+                    <p class="scene__title">Análise da refeição</p>
+                    <div class="meal">
+                      <svg viewBox="0 0 42 42" class="donut" aria-hidden="true">
+                        <circle cx="21" cy="21" r="15.9" class="donut__track" />
+                        <circle cx="21" cy="21" r="15.9" class="donut__seg donut__seg--p" pathLength="100" style="--len: 38; --off: 0" />
+                        <circle cx="21" cy="21" r="15.9" class="donut__seg donut__seg--c" pathLength="100" style="--len: 47; --off: -38" />
+                        <circle cx="21" cy="21" r="15.9" class="donut__seg donut__seg--g" pathLength="100" style="--len: 15; --off: -85" />
+                      </svg>
+                      <div class="meal__kcal"><b>510</b><span>kcal</span></div>
+                    </div>
+                    <p class="meal__name">Frango grelhado, arroz integral e salada</p>
+                    <ul class="macros">
+                      <li><i class="m-p"></i>Proteína <b>42 g</b></li>
+                      <li><i class="m-c"></i>Carboidrato <b>55 g</b></li>
+                      <li><i class="m-g"></i>Gordura <b>14 g</b></li>
+                    </ul>
+                  </div>
+
+                  <!-- Cena 4: Protocolo -->
+                  <div class="scene" data-scene="3">
+                    <p class="scene__title">Protocolo de hoje</p>
+                    <ul class="todo">
+                      <li class="done"><i></i>Creatina 5 g<span>08:00</span></li>
+                      <li class="done"><i></i>Treino B · inferiores<span>12:30</span></li>
+                      <li class="done"><i></i>Vitamina D<span>13:00</span></li>
+                      <li><i></i>Caminhada 30 min<span>19:00</span></li>
+                    </ul>
+                    <p class="week__label">Adesão na semana</p>
+                    <div class="week" aria-hidden="true">
+                      <i style="--h: 100%"></i><i style="--h: 85%"></i><i style="--h: 100%"></i><i style="--h: 70%"></i><i style="--h: 100%"></i><i style="--h: 90%"></i><i class="today" style="--h: 75%"></i>
+                    </div>
+                  </div>
+                </div>
+
+                <nav class="tabs" aria-hidden="true">
+                  <span><svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="16" rx="2" /><path d="M9 3h6v4H9zM9 12h6M9 16h4" /></svg>Protocolo</span>
+                  <span><svg viewBox="0 0 24 24"><path d="M6 8v8M3 10v4M18 8v8M21 10v4M6 12h12" /></svg>Treino</span>
+                  <span><svg viewBox="0 0 24 24"><path d="M12 7c-1.5-2-6-2-6.5 3S8 20 10 20c1 0 1.3-.5 2-.5s1 .5 2 .5c2 0 4.8-5 4.5-10S13.5 5 12 7ZM12 7c0-2 1-3.5 2.5-4" /></svg>Nutrição</span>
+                  <span><svg viewBox="0 0 24 24"><path d="M12 20s-7.5-4.6-7.5-10A4.2 4.2 0 0 1 12 7.6 4.2 4.2 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10Z" /><path d="M7 12.5h3l1.2-2.2 1.8 4 1.2-1.8H17" /></svg>Saúde</span>
+                </nav>
+              </div>
+            </div>
+
+            <ol class="scene-steps" aria-label="Telas da demonstração">
+              <li><button type="button" data-goto="0" class="is-active" aria-pressed="true">Score</button></li>
+              <li><button type="button" data-goto="1" aria-pressed="false">Check-in</button></li>
+              <li><button type="button" data-goto="2" aria-pressed="false">Refeição</button></li>
+              <li><button type="button" data-goto="3" aria-pressed="false">Protocolo</button></li>
+            </ol>
+          </div>
+        </div>
+      </section>
+
+      <!-- COMO FUNCIONA -->
+      <section class="paper chamfer" id="como-funciona">
+        <div class="wrap">
+          <div class="section-head rv">
+            <p class="kicker">Como funciona</p>
+            <h2 class="h2">
+              Mais que um app.<br />
+              <span class="hl">Um protocolo para a sua melhor versão.</span>
+            </h2>
+          </div>
+
+          <div class="trail" id="trail">
+            <svg class="trail__line" aria-hidden="true"><polyline /></svg>
+            <article class="trail__step rv">
+              <span class="trail__dot"></span>
+              <p class="trail__n">01</p>
+              <h3>Conte sua rotina pro ProtomBot</h3>
+              <p>Uma conversa de boas-vindas pergunta seu objetivo, sua rotina e seu histórico. Dali sai o seu ponto de partida.</p>
+            </article>
+            <article class="trail__step rv">
+              <span class="trail__dot"></span>
+              <p class="trail__n">02</p>
+              <h3>Check-in rápido, todo dia</h3>
+              <p>Sono, energia, peso e água. Poucos toques pela manhã, e é isso que alimenta o seu score.</p>
+            </article>
+            <article class="trail__step rv">
+              <span class="trail__dot"></span>
+              <p class="trail__n">03</p>
+              <h3>Protocolo, treino e nutrição</h3>
+              <p>O plano do dia numa tela só: suplementos no horário, o treino da vez e as refeições analisadas por foto.</p>
+            </article>
+            <article class="trail__step rv">
+              <span class="trail__dot"></span>
+              <p class="trail__n">04</p>
+              <h3>Exames e evolução</h3>
+              <p>Envie seus exames, acompanhe os marcadores e veja a curva subir ao longo das semanas.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- FUNCIONALIDADES -->
+      <section class="ink" id="recursos">
+        <div class="wrap">
+          <div class="section-head section-head--split rv">
+            <p class="kicker">O que fica num lugar só</p>
+            <h2 class="h2">Chega de juntar print de exame, planilha de treino e lembrete de suplemento.</h2>
+          </div>
+
+          <div class="bento rv">
+            <article class="cell cell--score">
+              <p class="cell__kicker">Score metabólico</p>
+              <p class="bignum"><span data-count="85">85</span><small>/100</small></p>
+              <p>Um número de 0 a 100 que cruza adesão ao protocolo, composição corporal, sono e exames. Você vê o que está puxando pra cima e o que está segurando.</p>
+              <ul class="mini-bars" aria-hidden="true">
+                <li style="--v: 90%"><span>Adesão</span></li>
+                <li style="--v: 80%"><span>Composição</span></li>
+                <li style="--v: 85%"><span>Sono</span></li>
+                <li style="--v: 78%"><span>Exames</span></li>
+              </ul>
+            </article>
+            <article class="cell cell--wide">
+              <svg viewBox="0 0 24 24" class="ico"><path d="M4 8h3l2-3h6l2 3h3v11H4z" /><circle cx="12" cy="13" r="3.5" /></svg>
+              <h3>Nutrição por foto</h3>
+              <p>Fotografe o prato. O app estima calorias e macros e compara com a sua meta do dia.</p>
+            </article>
+            <article class="cell cell--wide">
+              <svg viewBox="0 0 24 24" class="ico"><path d="M12 3 4 7.5v9L12 21l8-4.5v-9Z" /><path d="m4 7.5 8 4.5 8-4.5M12 12v9" /></svg>
+              <h3>Treino 3D</h3>
+              <p>Modo imersivo pra ver a execução de cada exercício antes de fazer.</p>
+            </article>
+            <article class="cell">
+              <svg viewBox="0 0 24 24" class="ico"><path d="M4 19h16M6 16l4-5 3 3 5-7" /></svg>
+              <h3>Exames e evolução</h3>
+              <p>Marcadores em gráfico, exame a exame, sem caçar PDF no e-mail.</p>
+            </article>
+            <article class="cell">
+              <svg viewBox="0 0 24 24" class="ico"><path d="M7 3h7l4 4v14H7z" /><path d="M14 3v4h4M10 13l2 2 3-4" /></svg>
+              <h3>Receitas digitais</h3>
+              <p>Prescrições com assinatura ICP-Brasil guardadas no app.</p>
+            </article>
+            <article class="cell">
+              <svg viewBox="0 0 24 24" class="ico"><path d="M12 4 3 20h18Z" /><path d="M12 10v4M12 17v.5" /></svg>
+              <h3>Alertas inteligentes</h3>
+              <p>Aviso quando algo sai do esperado no seu protocolo ou no seu check-in, antes de virar semana perdida.</p>
+            </article>
+            <article class="cell cell--strip">
+              <svg viewBox="0 0 24 24" class="ico"><path d="M3 12V4h8l10 10-8 8Z" /><circle cx="7.5" cy="8.5" r="1.2" /></svg>
+              <h3>Descontos com parceiros</h3>
+              <p>Condições especiais em suplementos, farmácias e laboratórios parceiros.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- PLANOS -->
+      <section class="paper chamfer" id="planos">
+        <div class="wrap">
+          <div class="section-head section-head--center rv">
+            <p class="kicker">Planos · preço de fundador</p>
+            <h2 class="h2">Preço de beta, travado enquanto você ficar.</h2>
+            <p class="section-lead">Todos os planos começam com 14 dias grátis. Troque ou cancele pelo próprio app.</p>
+          </div>
+
+          <div class="cycle rv" role="group" aria-label="Período de cobrança">
+            <span class="cycle__pill" aria-hidden="true"></span>
+            <button type="button" aria-pressed="true" data-cycle="monthly">Mensal</button>
+            <button type="button" aria-pressed="false" data-cycle="yearly">Anual <em>2 meses grátis</em></button>
+          </div>
+
+          <div class="plans" id="plans">
+            <noscript>
+              <p class="plans__noscript">
+                Essencial R$ 14,90/mês · Protocolo R$ 29,90/mês · Performance R$ 49,90/mês.
+                Anual com 2 meses grátis. <a href="/app">Começar 14 dias grátis</a>
+              </p>
+            </noscript>
+          </div>
+
+          <div class="compare rv">
+            <p class="compare__title">Compare os planos</p>
+            <div class="compare__scroll" tabindex="0" aria-label="Tabela comparativa, role para os lados">
+              <table id="compare-table"></table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- POR QUE BETA -->
+      <section class="ink" id="beta">
+        <div class="wrap beta">
+          <div class="rv">
+            <p class="kicker">Por que beta</p>
+            <h2 class="h2">Você entra cedo. <span class="hl">Isso tem vantagem.</span></h2>
+            <p class="section-lead">O ProtomApp já está de pé e em uso, mas algumas telas ainda estão evoluindo. Quem entra agora ajuda a decidir o que vem a seguir, e paga menos por isso.</p>
+          </div>
+          <ol class="beta__list">
+            <li class="rv">
+              <span>01</span>
+              <div>
+                <h3>Preço de fundador travado</h3>
+                <p>O valor que você assinar no beta não sobe enquanto a assinatura estiver ativa.</p>
+              </div>
+            </li>
+            <li class="rv">
+              <span>02</span>
+              <div>
+                <h3>14 dias pra testar de verdade</h3>
+                <p>Tempo de fazer check-in, treinar e ver o score se mexer antes de decidir.</p>
+              </div>
+            </li>
+            <li class="rv">
+              <span>03</span>
+              <div>
+                <h3>Seu feedback vira funcionalidade</h3>
+                <p>Você fala direto com quem constrói o app. O que fizer sentido entra na fila.</p>
+              </div>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- DUVIDAS -->
+      <section class="paper chamfer" id="duvidas">
+        <div class="wrap faq-wrap">
+          <div class="section-head rv">
+            <p class="kicker">Dúvidas</p>
+            <h2 class="h2">Antes de entrar</h2>
+          </div>
+          <div class="faq" id="faq">
+            <details open>
+              <summary>O ProtomApp substitui meu médico?</summary>
+              <p>Não. O ProtomApp tem caráter educacional e informativo. Ele organiza seu protocolo e seus dados, mas não substitui consulta, diagnóstico ou prescrição de um médico habilitado.</p>
+            </details>
+            <details>
+              <summary>Preciso cadastrar cartão pra testar?</summary>
+              <p>Não. Durante o beta você cria a conta e usa sem cartão. Antes de qualquer cobrança começar, você é avisado e escolhe o plano.</p>
+            </details>
+            <details>
+              <summary>Como funciona o preço de fundador?</summary>
+              <p>Quem assina durante o beta mantém o valor do plano escolhido enquanto a assinatura estiver ativa, mesmo que os preços subam depois.</p>
+            </details>
+            <details>
+              <summary>Posso cancelar quando quiser?</summary>
+              <p>Sim. O cancelamento é feito pelo próprio app, em Perfil, no botão “Gerenciar” do card do seu plano, sem precisar falar com ninguém.</p>
+            </details>
+            <details>
+              <summary>Funciona no iPhone e no Android?</summary>
+              <p>Funciona no navegador do celular e pode ficar na tela de início como um app. No Android, abra o menu do navegador e toque em “Instalar app”. No iPhone, toque em Compartilhar → “Adicionar à Tela de Início”.</p>
+            </details>
+            <details>
+              <summary>Meus dados de saúde ficam com quem?</summary>
+              <p>Ficam vinculados à sua conta e só são acessados com o seu login. Eles são usados pra calcular seu score e personalizar o seu protocolo.</p>
+            </details>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="wrap">
+        <div class="footer__cta rv">
+          <p class="footer__line">Disciplina hoje.<br /><span class="hl">Longevidade sempre.</span></p>
+          <a class="btn" href="/app">Começar 14 dias grátis</a>
+        </div>
+        <div class="footer__bottom">
+          <a class="brand" href="#topo" aria-label="ProtomApp, voltar ao topo">
+            <svg class="brand__mark" aria-hidden="true"><use href="#protom-mark" /></svg>
+            <span class="brand__word"><b>Protom</b>App</span>
+          </a>
+          <nav class="footer__nav" aria-label="Rodapé">
+            <a href="#como-funciona">Como funciona</a>
+            <a href="#planos">Planos</a>
+            <a href="#duvidas">Dúvidas</a>
+            <a href="/app">Já tenho conta</a>
+          </nav>
+        </div>
+        <p class="disclaimer">
+          O ProtomApp tem caráter exclusivamente educacional e informativo. As informações, protocolos e sugestões
+          apresentadas não substituem, em hipótese alguma, a consulta, o diagnóstico ou a prescrição de um médico
+          habilitado.
+        </p>
+        <p class="copy">© <span id="year">2026</span> ProtomApp · Saúde | Performance | Longevidade</p>
+      </div>
+    </footer>
+
+    <script src="/lp/data.js"></script>
+    <script src="/lp/main.js"></script>
+  </body>
+</html>
