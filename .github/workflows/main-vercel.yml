@@ -70,6 +70,12 @@ jobs:
       - name: Build
         run: npm run build
 
+      # O runtime da Vercel não aceita require() de pacotes ESM; o Node do runner aceita.
+      # Carregar a função com isso desligado pega dependência ESM antes do deploy.
+      - name: Check serverless function loads
+        working-directory: .
+        run: node --no-experimental-require-module -e "require('./api/index.js')"
+
   migrate:
     name: Database Migrations
     needs: [build-web, build-api]
