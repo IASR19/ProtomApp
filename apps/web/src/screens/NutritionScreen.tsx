@@ -64,6 +64,7 @@ const macroStyles = StyleSheet.create({
 });
 
 import { api } from "../services/api";
+import { compressImage } from "../utils/uploadLimits";
 import { ActivityIndicator } from "react-native";
 
 export default function NutritionScreen({ navigation }: Props) {
@@ -97,11 +98,11 @@ export default function NutritionScreen({ navigation }: Props) {
     const result = await ImagePicker.launchCameraAsync({ quality: 0.8 });
     if (result.canceled || !result.assets?.[0]) return;
 
-    const asset = result.assets[0];
     setStatus("processing");
     try {
-      const fileName = asset.fileName || "refeicao.jpg";
-      const mimeType = asset.mimeType || "image/jpeg";
+      const asset = await compressImage(result.assets[0]);
+      const fileName = "refeicao.jpg";
+      const mimeType = asset.mimeType;
       const formData = new FormData();
       if (Platform.OS === "web") {
         // No web, asset.uri é um blob:/data: URL — o formato { uri, name, type }

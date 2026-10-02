@@ -17,7 +17,8 @@ import { NutritionService } from '../services/nutrition.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { IsNotEmpty, IsNumber, IsString, IsOptional } from 'class-validator';
 
-const MAX_MEAL_PHOTO_BYTES = 10 * 1024 * 1024;
+// A Vercel limita o corpo da requisição a 4,5 MB; o app comprime a foto antes de enviar.
+const MAX_MEAL_PHOTO_BYTES = 4 * 1024 * 1024;
 const ALLOWED_MEAL_PHOTO_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 class CreateMealDto {

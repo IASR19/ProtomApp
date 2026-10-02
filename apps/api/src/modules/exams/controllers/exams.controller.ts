@@ -53,7 +53,8 @@ class UpdateExamDto {
   type?: string;
 }
 
-const MAX_EXAM_UPLOAD_BYTES = 10 * 1024 * 1024;
+// A Vercel limita o corpo da requisição a 4,5 MB; o app comprime fotos antes de enviar.
+const MAX_EXAM_UPLOAD_BYTES = 4 * 1024 * 1024;
 const ALLOWED_EXAM_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
 
 @ApiTags('exams')

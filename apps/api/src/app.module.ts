@@ -43,7 +43,6 @@ import { DailyCheckinEntity } from './modules/wellness/entities/daily-checkin.en
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (config: ConfigService) => {
-        const isProd = config.get('NODE_ENV') === 'production';
         const dbSsl = config.get('DB_SSL') === 'true';
         return {
           type: 'postgres' as const,
@@ -64,10 +63,17 @@ import { DailyCheckinEntity } from './modules/wellness/entities/daily-checkin.en
             CreateBodyScanSnapshots1789431421762,
             AddProfileFeatureFields1789431630294,
           ],
-          synchronize: !isProd,
-          migrationsRun: isProd,
+          // Só em dev explícito: previews na Vercel rodam código de PR e podem
+          // apontar para o banco de produção.
+          synchronize: config.get('NODE_ENV') === 'development',
+          // Migrations rodam no pipeline (npm run migration:run), não no boot:
+          // em serverless cada cold start rodaria tudo de novo.
+          migrationsRun: false,
           logging: config.get('NODE_ENV') === 'development',
           ssl: dbSsl ? { rejectUnauthorized: false } : false,
+          // Cada instância serverless abre o próprio pool; manter pequeno evita
+          // estourar o limite de conexões do Postgres.
+          extra: { max: parseInt(String(config.get('DB_POOL_MAX', 10)), 10) },
         };
       },
       inject: [ConfigService],

@@ -60,6 +60,13 @@ DB_PASS=postgres
 DB_NAME=protomapp
 JWT_SECRET=sua_chave_secreta_aqui
 PORT=3001
+# synchronize do TypeORM só liga com NODE_ENV=development
+NODE_ENV=development
+# Tamanho do pool por instância (na Vercel use 3–5: cada instância serverless abre o seu)
+DB_POOL_MAX=10
+# Origens liberadas no CORS, separadas por vírgula. Vazio: libera tudo fora de
+# produção; em produção não envia CORS (o front web chama /api no mesmo domínio)
+CORS_ORIGINS=
 ```
 
 ---

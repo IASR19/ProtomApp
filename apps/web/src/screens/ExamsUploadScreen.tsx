@@ -10,6 +10,7 @@ import {
   Alert,
   Modal,
   TextInput,
+  Platform,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
@@ -18,6 +19,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "../theme/colors";
 import { GlobalStyles } from "../theme/styles";
 import { api } from "../services/api";
+import { compressImage, MAX_UPLOAD_BYTES, UPLOAD_TOO_LARGE_MESSAGE } from "../utils/uploadLimits";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation";
 
@@ -56,7 +58,13 @@ export default function ExamsUploadScreen({ navigation }: Props) {
     setUploading(true);
     try {
       const formData = new FormData();
-      formData.append("file", { uri, name, type: mimeType } as any);
+      if (Platform.OS === "web") {
+        // No web o { uri, name, type } vira campo de texto; precisa do blob real.
+        const blob = await (await fetch(uri)).blob();
+        formData.append("file", blob, name);
+      } else {
+        formData.append("file", { uri, name, type: mimeType } as any);
+      }
       const exam = await api.upload<Exam>("/exams/upload", formData);
       setExams((prev) => [exam, ...prev]);
       if (exam.status === "Falha na Análise") {
@@ -85,14 +93,24 @@ export default function ExamsUploadScreen({ navigation }: Props) {
       ? await ImagePicker.launchCameraAsync({ quality: 0.8 })
       : await ImagePicker.launchImageLibraryAsync({ quality: 0.8 });
     if (result.canceled || !result.assets?.[0]) return;
-    const asset = result.assets[0];
-    await uploadFile(asset.uri, asset.fileName || "exame.jpg", asset.mimeType || "image/jpeg");
+    let compressed: { uri: string; mimeType: string };
+    try {
+      compressed = await compressImage(result.assets[0]);
+    } catch (err: any) {
+      Alert.alert("Erro ao enviar exame", err.message);
+      return;
+    }
+    await uploadFile(compressed.uri, "exame.jpg", compressed.mimeType);
   };
 
   const handlePickPdf = async () => {
     const result = await DocumentPicker.getDocumentAsync({ type: "application/pdf" });
     if (result.canceled || !result.assets?.[0]) return;
     const asset = result.assets[0];
+    if (asset.size && asset.size > MAX_UPLOAD_BYTES) {
+      Alert.alert("Erro ao enviar exame", UPLOAD_TOO_LARGE_MESSAGE);
+      return;
+    }
     await uploadFile(asset.uri, asset.name || "exame.pdf", asset.mimeType || "application/pdf");
   };
 

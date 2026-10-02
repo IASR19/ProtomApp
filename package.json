@@ -1,0 +1,13 @@
+{
+  "name": "protomapp",
+  "private": true,
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "install:all": "cd apps/web && npm ci && cd ../api && npm ci",
+    "build": "cd apps/web && npm run build && cd ../api && npm run build",
+    "dev:web": "cd apps/web && npm run web",
+    "dev:api": "cd apps/api && npm run start:dev"
+  }
+}

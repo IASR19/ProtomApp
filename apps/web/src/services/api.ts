@@ -1,4 +1,5 @@
 import { Platform } from "react-native";
+import { UPLOAD_TOO_LARGE_MESSAGE } from "../utils/uploadLimits";
 
 // Preferência: EXPO_PUBLIC_API_URL no .env
 // Fallback por plataforma quando a variável não estiver definida.
@@ -42,6 +43,11 @@ async function handleResponse<T>(response: Response): Promise<T> {
       errorMessage = errorData.message || errorMessage;
     } catch (_) {
       // Falha ao parsear erro como JSON, mantém mensagem padrão
+    }
+
+    // 413 vem da própria Vercel (corpo acima de 4,5 MB), sem JSON da API.
+    if (response.status === 413) {
+      errorMessage = UPLOAD_TOO_LARGE_MESSAGE;
     }
 
     if (response.status === 401 && onUnauthorized) {
